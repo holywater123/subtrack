@@ -40,16 +40,20 @@ export function BlurFadeText({
   return (
     <Wrapper className={className}>
       {words.map((word, i) => (
-        <BlurFade
-          key={`${word}-${i}`}
-          delay={delay + i * staggerDelay}
-          duration={duration}
-          yOffset={yOffset}
-          className={wordClassName ? `inline-block ${wordClassName}` : "inline-block"}
-        >
-          {word}
+        // The space is a plain sibling text node, not inside the animated
+        // inline-block box - a trailing space inside the box gets collapsed
+        // by the browser and the words render with no gap between them.
+        <span key={`${word}-${i}`}>
+          <BlurFade
+            delay={delay + i * staggerDelay}
+            duration={duration}
+            yOffset={yOffset}
+            className={wordClassName ? `inline-block ${wordClassName}` : "inline-block"}
+          >
+            {word}
+          </BlurFade>
           {i < words.length - 1 ? " " : ""}
-        </BlurFade>
+        </span>
       ))}
     </Wrapper>
   );
