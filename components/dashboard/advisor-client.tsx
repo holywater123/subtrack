@@ -20,6 +20,19 @@ function tempId() {
   return `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+// The model is told not to use markdown but sometimes reaches for **bold**
+// out of habit anyway - render it properly instead of showing raw asterisks.
+function renderMessageContent(content: string) {
+  const parts = content.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) =>
+    part.startsWith("**") && part.endsWith("**") ? (
+      <strong key={i}>{part.slice(2, -2)}</strong>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
+
 export function AdvisorClient({ messages }: { messages: ChatMessage[] }) {
   const [items, setItems] = useState(messages);
   const [input, setInput] = useState("");
@@ -142,7 +155,7 @@ export function AdvisorClient({ messages }: { messages: ChatMessage[] }) {
                     : "bg-muted text-foreground mr-auto"
                 )}
               >
-                {m.content}
+                {renderMessageContent(m.content)}
               </div>
             ))
           )}
