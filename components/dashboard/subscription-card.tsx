@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Subscription } from "@/lib/types";
 import { monthlyEquivalent } from "@/lib/subscription-math";
 import { currencySymbol } from "@/lib/currencies";
+import { getCategory } from "@/lib/categories";
 import { deleteSubscription, toggleSubscriptionPause } from "@/app/dashboard/actions";
 
 const CYCLE_LABEL: Record<Subscription["billing_cycle"], string> = {
@@ -16,24 +17,6 @@ const CYCLE_LABEL: Record<Subscription["billing_cycle"], string> = {
   yearly: "/yr",
   weekly: "/wk",
 };
-
-const AVATAR_COLORS = [
-  "bg-rose-500",
-  "bg-orange-500",
-  "bg-amber-500",
-  "bg-emerald-500",
-  "bg-teal-500",
-  "bg-sky-500",
-  "bg-indigo-500",
-  "bg-violet-500",
-  "bg-pink-500",
-];
-
-function avatarColor(name: string) {
-  let hash = 0;
-  for (const char of name) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
-}
 
 export function SubscriptionCard({
   subscription,
@@ -44,6 +27,8 @@ export function SubscriptionCard({
 }) {
   const [isPending, startTransition] = useTransition();
   const symbol = currencySymbol(subscription.currency);
+  const category = getCategory(subscription.category);
+  const CategoryIcon = category.icon;
 
   function handleDelete() {
     startTransition(async () => {
@@ -73,13 +58,16 @@ export function SubscriptionCard({
     >
       <div className="flex items-center gap-3">
         <div
-          className={`flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white ${avatarColor(subscription.name)}`}
+          className={`flex size-10 shrink-0 items-center justify-center rounded-full text-white ${category.color}`}
         >
-          {subscription.name.slice(0, 1).toUpperCase()}
+          <CategoryIcon className="size-5" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <p className="truncate font-medium">{subscription.name}</p>
+            <Badge variant="outline" className="text-[10px]">
+              {category.label}
+            </Badge>
             {subscription.is_paused && (
               <Badge variant="outline" className="text-[10px]">
                 Paused

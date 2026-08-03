@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import type { Subscription } from "@/lib/types";
 import { CURRENCIES } from "@/lib/currencies";
+import { CATEGORIES } from "@/lib/categories";
 import { addSubscription, updateSubscription } from "@/app/dashboard/actions";
 
 export function SubscriptionDialog({
@@ -65,6 +66,7 @@ function SubscriptionForm({
   const [billingCycle, setBillingCycle] = useState<
     Subscription["billing_cycle"]
   >(subscription?.billing_cycle ?? "monthly");
+  const [category, setCategory] = useState(subscription?.category ?? "other");
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(e: FormEvent) {
@@ -74,6 +76,7 @@ function SubscriptionForm({
     formData.set("price", price);
     formData.set("currency", currency);
     formData.set("billingCycle", billingCycle);
+    formData.set("category", category);
 
     startTransition(async () => {
       const result = subscription
@@ -139,23 +142,40 @@ function SubscriptionForm({
             </Select>
           </div>
         </div>
-        <div className="flex flex-col gap-2">
-          <Label>Billing cycle</Label>
-          <Select
-            value={billingCycle}
-            onValueChange={(v) =>
-              v && setBillingCycle(v as Subscription["billing_cycle"])
-            }
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="monthly">Monthly</SelectItem>
-              <SelectItem value="yearly">Yearly</SelectItem>
-              <SelectItem value="weekly">Weekly</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-2">
+            <Label>Billing cycle</Label>
+            <Select
+              value={billingCycle}
+              onValueChange={(v) =>
+                v && setBillingCycle(v as Subscription["billing_cycle"])
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="yearly">Yearly</SelectItem>
+                <SelectItem value="weekly">Weekly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label>Category</Label>
+            <Select value={category} onValueChange={(v) => v && setCategory(v)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <DialogFooter>
           <Button type="submit" disabled={isPending}>

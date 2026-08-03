@@ -9,6 +9,7 @@ create table subscriptions (
   price numeric(10, 2) not null,
   currency text not null default 'USD',
   billing_cycle billing_cycle not null default 'monthly',
+  category text not null default 'other',
   is_paused boolean not null default false,
   created_at timestamptz not null default now()
 );

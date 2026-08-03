@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CURRENCY_CODES } from "@/lib/currencies";
+import { CATEGORY_VALUES } from "@/lib/categories";
 import type { BillingCycle } from "@/lib/types";
 
 const BILLING_CYCLES: BillingCycle[] = ["monthly", "yearly", "weekly"];
@@ -15,11 +16,13 @@ function parseSubscriptionForm(formData: FormData): ActionResult & {
   price?: number;
   currency?: string;
   billingCycle?: BillingCycle;
+  category?: string;
 } {
   const name = String(formData.get("name") ?? "").trim();
   const price = Number(formData.get("price"));
   const currency = String(formData.get("currency") ?? "USD");
   const billingCycle = String(formData.get("billingCycle") ?? "monthly");
+  const category = String(formData.get("category") ?? "other");
 
   if (!name) return { error: "Name is required." };
   if (!Number.isFinite(price) || price < 0) {
@@ -31,6 +34,9 @@ function parseSubscriptionForm(formData: FormData): ActionResult & {
   if (!BILLING_CYCLES.includes(billingCycle as BillingCycle)) {
     return { error: "Invalid billing cycle." };
   }
+  if (!CATEGORY_VALUES.includes(category)) {
+    return { error: "Invalid category." };
+  }
 
   return {
     success: true,
@@ -38,6 +44,7 @@ function parseSubscriptionForm(formData: FormData): ActionResult & {
     price,
     currency,
     billingCycle: billingCycle as BillingCycle,
+    category,
   };
 }
 
@@ -57,6 +64,7 @@ export async function addSubscription(formData: FormData): Promise<ActionResult>
     price: parsed.price,
     currency: parsed.currency,
     billing_cycle: parsed.billingCycle,
+    category: parsed.category,
   });
 
   if (error) return { error: error.message };
@@ -85,6 +93,7 @@ export async function updateSubscription(
       price: parsed.price,
       currency: parsed.currency,
       billing_cycle: parsed.billingCycle,
+      category: parsed.category,
     })
     .eq("id", id)
     .eq("user_id", user.id);

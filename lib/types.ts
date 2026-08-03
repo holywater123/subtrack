@@ -6,6 +6,7 @@ export interface Subscription {
   price: number;
   currency: string;
   billing_cycle: BillingCycle;
+  category: string;
   is_paused: boolean;
   created_at: string;
 }
