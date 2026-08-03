@@ -104,6 +104,45 @@ export async function updateWallet(
   return { success: true };
 }
 
+export async function toggleCashPoolWallet(id: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not signed in." };
+
+  const { data: wallet } = await supabase
+    .from("wallets")
+    .select("is_cash_pool")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!wallet) return { error: "Wallet not found." };
+
+  // Only one wallet can be the cash pool at a time - clear any existing
+  // one first so the partial unique index never sees two active rows.
+  const { error: clearError } = await supabase
+    .from("wallets")
+    .update({ is_cash_pool: false })
+    .eq("user_id", user.id);
+
+  if (clearError) return { error: clearError.message };
+
+  if (!wallet.is_cash_pool) {
+    const { error } = await supabase
+      .from("wallets")
+      .update({ is_cash_pool: true })
+      .eq("id", id)
+      .eq("user_id", user.id);
+
+    if (error) return { error: error.message };
+  }
+
+  revalidateAll();
+  return { success: true };
+}
+
 export async function deleteWallet(id: string): Promise<ActionResult> {
   const supabase = await createClient();
   const {

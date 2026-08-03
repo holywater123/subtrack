@@ -31,6 +31,7 @@ export interface Wallet {
   description: string | null;
   currency: string;
   starting_balance: number;
+  is_cash_pool: boolean;
   created_at: string;
 }
 

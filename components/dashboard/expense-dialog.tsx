@@ -81,7 +81,10 @@ function ExpenseForm({
   const [spentOn, setSpentOn] = useState(expense?.spent_on ?? today());
   const [note, setNote] = useState(expense?.note ?? "");
   const [receiptPath, setReceiptPath] = useState(expense?.receipt_path ?? "");
-  const [walletId, setWalletId] = useState(expense?.wallet_id ?? "none");
+  const cashPoolWallet = wallets.find((w) => w.is_cash_pool);
+  const [walletId, setWalletId] = useState(
+    expense?.wallet_id ?? cashPoolWallet?.id ?? "none"
+  );
   const [scanFile, setScanFile] = useState<File | null>(null);
   const [hint, setHint] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -89,8 +92,11 @@ function ExpenseForm({
   const [isViewingReceipt, startViewingReceipt] = useTransition();
 
   const walletItems = [
-    { value: "none", label: "Unassigned (cash pool)" },
-    ...wallets.map((w) => ({ value: w.id, label: w.name })),
+    { value: "none", label: "Unassigned" },
+    ...wallets.map((w) => ({
+      value: w.id,
+      label: w.is_cash_pool ? `${w.name} (Cash pool)` : w.name,
+    })),
   ];
 
   function handleScan() {

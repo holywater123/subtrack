@@ -70,12 +70,18 @@ function IncomeForm({
   const [category, setCategory] = useState(income?.category ?? "other");
   const [receivedOn, setReceivedOn] = useState(income?.received_on ?? today());
   const [note, setNote] = useState(income?.note ?? "");
-  const [walletId, setWalletId] = useState(income?.wallet_id ?? "none");
+  const cashPoolWallet = wallets.find((w) => w.is_cash_pool);
+  const [walletId, setWalletId] = useState(
+    income?.wallet_id ?? cashPoolWallet?.id ?? "none"
+  );
   const [isPending, startTransition] = useTransition();
 
   const walletItems = [
-    { value: "none", label: "Unassigned (cash pool)" },
-    ...wallets.map((w) => ({ value: w.id, label: w.name })),
+    { value: "none", label: "Unassigned" },
+    ...wallets.map((w) => ({
+      value: w.id,
+      label: w.is_cash_pool ? `${w.name} (Cash pool)` : w.name,
+    })),
   ];
 
   function handleSubmit(e: FormEvent) {

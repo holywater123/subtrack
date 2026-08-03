@@ -32,6 +32,7 @@ create table wallets (
   description text,
   currency text not null default 'MYR',
   starting_balance numeric(10, 2) not null default 0,
+  is_cash_pool boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -44,6 +45,10 @@ create policy "Users manage their own wallets"
   with check (auth.uid() = user_id);
 
 create index wallets_user_id_idx on wallets (user_id);
+
+-- Enforce at most one cash-pool wallet per user.
+create unique index wallets_one_cash_pool_idx on wallets (user_id)
+  where is_cash_pool;
 
 create table expenses (
   id uuid primary key default gen_random_uuid(),

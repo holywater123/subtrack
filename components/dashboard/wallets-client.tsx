@@ -6,15 +6,23 @@ import { Button } from "@/components/ui/button";
 import { TotalSpendCard } from "@/components/dashboard/total-spend-card";
 import { WalletRow } from "@/components/dashboard/wallet-row";
 import { WalletDialog } from "@/components/dashboard/wallet-dialog";
+import {
+  WalletsBreakdown,
+  type WalletTypeBreakdownRow,
+} from "@/components/dashboard/wallets-breakdown";
 import type { Wallet } from "@/lib/types";
 
 export function WalletsClient({
   walletRows,
   unassignedTotal,
+  totalCashOnHand,
+  typeBreakdown,
   baseCurrency,
 }: {
   walletRows: { wallet: Wallet; balance: number }[];
   unassignedTotal: number;
+  totalCashOnHand: number;
+  typeBreakdown: WalletTypeBreakdownRow[];
   baseCurrency: string;
 }) {
   const [dialogState, setDialogState] = useState<{
@@ -25,9 +33,9 @@ export function WalletsClient({
   return (
     <div className="flex flex-col gap-6">
       <TotalSpendCard
-        label="Unassigned (cash pool)"
+        label="Unassigned"
         totalMonthly={unassignedTotal}
-        subtitle="Income and expenses not yet assigned to a wallet - converted to the base currency"
+        subtitle="Income and expenses not assigned to any wallet - converted to the base currency"
         baseCurrency={baseCurrency}
       />
 
@@ -67,6 +75,12 @@ export function WalletsClient({
         open={dialogState.open}
         wallet={dialogState.wallet}
         onOpenChange={(open) => setDialogState((s) => ({ ...s, open }))}
+      />
+
+      <WalletsBreakdown
+        totalCashOnHand={totalCashOnHand}
+        typeBreakdown={typeBreakdown}
+        baseCurrency={baseCurrency}
       />
     </div>
   );
