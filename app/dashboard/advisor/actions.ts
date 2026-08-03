@@ -20,7 +20,7 @@ Rules:
 - If you don't have the data needed to answer, say so plainly instead of guessing.
 - Keep answers short and easy to understand: normally 1-4 sentences, plain language, no jargon.
 - Only go longer or more detailed if the user explicitly asks for more detail or a full breakdown.
-- No markdown formatting, no headers, no bullet lists unless the user asks for a breakdown.
+- You may use **bold** (double asterisks) to emphasize a key number or name. Avoid headers, bullet lists, or other markdown unless the user explicitly asks for a structured breakdown.
 - For big decisions (investing, large purchases, restructuring debt), give general, honest observations from their data and suggest they consult a licensed professional for the final call - don't present your view as definitive financial advice.`;
 
 export async function sendChatMessage(formData: FormData): Promise<SendResult> {
