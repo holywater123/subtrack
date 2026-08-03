@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { quoteForDate } from "@/lib/finance-quotes";
-import { BlurFade } from "@/components/ui/blur-fade";
+import { BlurFadeText } from "@/components/ui/blur-fade";
 
 function greetingForHour(hour: number) {
   if (hour < 12) return "Good morning";
@@ -22,21 +22,22 @@ export function DashboardGreeting({ name }: { name: string }) {
 
   const greeting = now ? greetingForHour(now.getHours()) : "Hi";
   const quote = now ? quoteForDate(now) : "";
+  const greetingText = `${greeting}${name ? `, ${name}` : ""}! Have you logged your finances today?`;
+  const greetingWordCount = greetingText.split(" ").length;
 
   return (
     <div>
-      <BlurFade duration={0.5}>
-        <h1 className="text-xl font-semibold tracking-tight">
-          {greeting}
-          {name ? `, ${name}` : ""}! Have you logged your finances today?
-        </h1>
-      </BlurFade>
+      <BlurFadeText
+        text={greetingText}
+        as="h1"
+        className="text-xl font-semibold tracking-tight"
+      />
       {quote && (
-        <BlurFade duration={0.5} delay={0.1}>
-          <p className="text-muted-foreground mt-0.5 text-sm italic">
-            &ldquo;{quote}&rdquo;
-          </p>
-        </BlurFade>
+        <BlurFadeText
+          text={`“${quote}”`}
+          delay={0.15 + greetingWordCount * 0.03}
+          className="text-muted-foreground mt-0.5 block text-sm italic"
+        />
       )}
     </div>
   );

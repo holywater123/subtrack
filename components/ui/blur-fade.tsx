@@ -15,6 +15,46 @@ interface BlurFadeProps {
   blur?: string;
 }
 
+// Same blur+slide-up reveal as BlurFade, but staggered one word at a time
+// by wrapping each word in its own BlurFade with an incremental delay.
+export function BlurFadeText({
+  text,
+  as: Wrapper = "span",
+  className,
+  wordClassName,
+  duration = 0.3,
+  delay = 0,
+  yOffset = 4,
+  staggerDelay = 0.03,
+}: {
+  text: string;
+  as?: keyof React.JSX.IntrinsicElements;
+  className?: string;
+  wordClassName?: string;
+  duration?: number;
+  delay?: number;
+  yOffset?: number;
+  staggerDelay?: number;
+}) {
+  const words = text.split(" ");
+  return (
+    <Wrapper className={className}>
+      {words.map((word, i) => (
+        <BlurFade
+          key={`${word}-${i}`}
+          delay={delay + i * staggerDelay}
+          duration={duration}
+          yOffset={yOffset}
+          className={wordClassName ? `inline-block ${wordClassName}` : "inline-block"}
+        >
+          {word}
+          {i < words.length - 1 ? " " : ""}
+        </BlurFade>
+      ))}
+    </Wrapper>
+  );
+}
+
 export function BlurFade({
   children,
   className,
