@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 import "./globals.css";
 
 const maximaNouva = localFont({
@@ -29,6 +30,17 @@ export const metadata: Metadata = {
   title: "Gauge - Personal finance tracker",
   description:
     "Track subscriptions, everyday expenses, and budgets in one place.",
+  appleWebApp: {
+    title: "Gauge",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+  ],
 };
 
 export default function RootLayout({
@@ -51,6 +63,7 @@ export default function RootLayout({
         >
           {children}
           <Toaster richColors position="top-center" />
+          <ServiceWorkerRegistration />
         </ThemeProvider>
       </body>
     </html>
