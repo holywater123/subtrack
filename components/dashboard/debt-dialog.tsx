@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Debt } from "@/lib/types";
-import { CURRENCIES } from "@/lib/currencies";
+import { CURRENCY_ITEMS } from "@/lib/currencies";
 import { DEBT_TYPES } from "@/lib/debt-types";
 import { addDebt, updateDebt } from "@/app/dashboard/debts/actions";
 
@@ -104,7 +104,11 @@ function DebtForm({ debt, onDone }: { debt?: Debt; onDone: () => void }) {
         </div>
         <div className="flex flex-col gap-2">
           <Label>Type</Label>
-          <Select value={debtType} onValueChange={(v) => v && setDebtType(v)}>
+          <Select
+            items={DEBT_TYPES}
+            value={debtType}
+            onValueChange={(v) => v && setDebtType(v)}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -132,14 +136,18 @@ function DebtForm({ debt, onDone }: { debt?: Debt; onDone: () => void }) {
           </div>
           <div className="flex flex-col gap-2">
             <Label>Currency</Label>
-            <Select value={currency} onValueChange={(v) => v && setCurrency(v)}>
+            <Select
+              items={CURRENCY_ITEMS}
+              value={currency}
+              onValueChange={(v) => v && setCurrency(v)}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {CURRENCIES.map((c) => (
-                  <SelectItem key={c.code} value={c.code}>
-                    {c.code} - {c.label}
+                {CURRENCY_ITEMS.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>
+                    {c.label}
                   </SelectItem>
                 ))}
               </SelectContent>

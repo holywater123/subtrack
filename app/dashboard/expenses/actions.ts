@@ -7,18 +7,38 @@ import { CATEGORY_VALUES, CATEGORIES } from "@/lib/categories";
 
 type ActionResult = { error: string } | { success: true };
 
+async function resolveWalletId(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  walletIdRaw: string
+): Promise<{ error: string } | { walletId: string | null }> {
+  if (!walletIdRaw || walletIdRaw === "none") return { walletId: null };
+
+  const { data } = await supabase
+    .from("wallets")
+    .select("id")
+    .eq("id", walletIdRaw)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!data) return { error: "Invalid wallet." };
+  return { walletId: data.id };
+}
+
 function parseExpenseForm(formData: FormData): ActionResult & {
   amount?: number;
   currency?: string;
   category?: string;
   spentOn?: string;
   note?: string | null;
+  walletIdRaw?: string;
 } {
   const amount = Number(formData.get("amount"));
   const currency = String(formData.get("currency") ?? "MYR");
   const category = String(formData.get("category") ?? "other");
   const spentOn = String(formData.get("spentOn") ?? "");
   const note = String(formData.get("note") ?? "").trim();
+  const walletIdRaw = String(formData.get("walletId") ?? "none");
 
   if (!Number.isFinite(amount) || amount <= 0) {
     return { error: "Enter a valid amount." };
@@ -40,6 +60,7 @@ function parseExpenseForm(formData: FormData): ActionResult & {
     category,
     spentOn,
     note: note || null,
+    walletIdRaw,
   };
 }
 
@@ -59,6 +80,13 @@ export async function addExpense(formData: FormData): Promise<ActionResult> {
   const parsed = parseExpenseForm(formData);
   if ("error" in parsed) return parsed;
 
+  const walletResolved = await resolveWalletId(
+    supabase,
+    user.id,
+    parsed.walletIdRaw!
+  );
+  if ("error" in walletResolved) return walletResolved;
+
   const receiptPath = String(formData.get("receiptPath") ?? "").trim() || null;
 
   const { error } = await supabase.from("expenses").insert({
@@ -70,6 +98,7 @@ export async function addExpense(formData: FormData): Promise<ActionResult> {
     note: parsed.note,
     receipt_path: receiptPath,
     receipt_uploaded_at: receiptPath ? new Date().toISOString() : null,
+    wallet_id: walletResolved.walletId,
   });
 
   if (error) return { error: error.message };
@@ -91,6 +120,13 @@ export async function updateExpense(
   const parsed = parseExpenseForm(formData);
   if ("error" in parsed) return parsed;
 
+  const walletResolved = await resolveWalletId(
+    supabase,
+    user.id,
+    parsed.walletIdRaw!
+  );
+  if ("error" in walletResolved) return walletResolved;
+
   const receiptPath = String(formData.get("receiptPath") ?? "").trim() || null;
 
   const update: Record<string, unknown> = {
@@ -99,6 +135,7 @@ export async function updateExpense(
     category: parsed.category,
     spent_on: parsed.spentOn,
     note: parsed.note,
+    wallet_id: walletResolved.walletId,
   };
   // Only touch the receipt fields if a new one was scanned in this edit -
   // otherwise leave whatever receipt was already attached alone.

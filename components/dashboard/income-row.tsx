@@ -2,13 +2,13 @@
 
 import { useTransition } from "react";
 import { toast } from "sonner";
-import { Paperclip, Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Button } from "@/components/ui/button";
-import type { Expense, Wallet } from "@/lib/types";
+import type { Income, Wallet } from "@/lib/types";
 import { currencySymbol } from "@/lib/currencies";
-import { getCategory } from "@/lib/categories";
-import { deleteExpense } from "@/app/dashboard/expenses/actions";
+import { getIncomeCategory } from "@/lib/income-categories";
+import { deleteIncome } from "@/app/dashboard/income/actions";
 
 function formatDate(iso: string) {
   return new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, {
@@ -17,26 +17,26 @@ function formatDate(iso: string) {
   });
 }
 
-export function ExpenseRow({
-  expense,
+export function IncomeRow({
+  income,
   wallets,
   onEdit,
 }: {
-  expense: Expense;
+  income: Income;
   wallets: Wallet[];
   onEdit: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
-  const category = getCategory(expense.category);
+  const category = getIncomeCategory(income.category);
   const Icon = category.icon;
-  const symbol = currencySymbol(expense.currency);
-  const wallet = wallets.find((w) => w.id === expense.wallet_id);
+  const symbol = currencySymbol(income.currency);
+  const wallet = wallets.find((w) => w.id === income.wallet_id);
 
   function handleDelete() {
     startTransition(async () => {
-      const result = await deleteExpense(expense.id);
+      const result = await deleteIncome(income.id);
       if ("error" in result) toast.error(result.error);
-      else toast.success("Expense removed");
+      else toast.success("Income removed");
     });
   }
 
@@ -51,8 +51,8 @@ export function ExpenseRow({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <p className="font-medium">
-              {symbol}
-              {expense.amount.toFixed(2)}
+              +{symbol}
+              {income.amount.toFixed(2)}
             </p>
             <span className="text-muted-foreground text-xs">
               {category.label}
@@ -62,13 +62,10 @@ export function ExpenseRow({
                 {wallet.name}
               </span>
             )}
-            {expense.receipt_path && (
-              <Paperclip className="text-muted-foreground size-3" />
-            )}
           </div>
           <p className="text-muted-foreground truncate text-sm">
-            {formatDate(expense.spent_on)}
-            {expense.note ? ` - ${expense.note}` : ""}
+            {formatDate(income.received_on)}
+            {income.note ? ` - ${income.note}` : ""}
           </p>
         </div>
         <div className="flex shrink-0 gap-1">

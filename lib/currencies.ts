@@ -38,6 +38,13 @@ export type CurrencyCode = (typeof CURRENCIES)[number]["code"];
 
 export const CURRENCY_CODES: string[] = CURRENCIES.map((c) => c.code);
 
+// Shape Base UI's <Select items> expects, so the trigger shows the full
+// "MYR - Malaysian Ringgit" label instead of falling back to the raw code.
+export const CURRENCY_ITEMS = CURRENCIES.map((c) => ({
+  value: c.code,
+  label: `${c.code} - ${c.label}`,
+}));
+
 export function currencySymbol(code: string) {
   return CURRENCIES.find((c) => c.code === code)?.symbol ?? code;
 }

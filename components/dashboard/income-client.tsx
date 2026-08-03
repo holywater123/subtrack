@@ -3,37 +3,27 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ExpenseRow } from "@/components/dashboard/expense-row";
-import { ExpenseDialog } from "@/components/dashboard/expense-dialog";
-import {
-  ExpensesBreakdown,
-  type BreakdownExpense,
-} from "@/components/dashboard/expenses-breakdown";
-import type { Expense, Wallet } from "@/lib/types";
+import { IncomeRow } from "@/components/dashboard/income-row";
+import { IncomeDialog } from "@/components/dashboard/income-dialog";
+import type { Income, Wallet } from "@/lib/types";
 
-export function ExpensesClient({
-  expenses,
-  breakdownExpenses,
-  baseCurrency,
+export function IncomeClient({
+  income,
   wallets,
 }: {
-  expenses: Expense[];
-  breakdownExpenses: BreakdownExpense[];
-  baseCurrency: string;
+  income: Income[];
   wallets: Wallet[];
 }) {
   const [dialogState, setDialogState] = useState<{
     open: boolean;
-    expense?: Expense;
+    income?: Income;
   }>({ open: false });
 
   return (
     <div className="flex flex-col gap-6">
-      <ExpensesBreakdown expenses={breakdownExpenses} baseCurrency={baseCurrency} />
-
       <div className="flex items-center justify-between">
         <h2 className="text-muted-foreground text-sm font-medium">
-          Recent expenses
+          Recent income
         </h2>
         <Button
           size="sm"
@@ -41,31 +31,31 @@ export function ExpensesClient({
           onClick={() => setDialogState({ open: true })}
         >
           <Plus className="size-4" />
-          Add expense
+          Add income
         </Button>
       </div>
 
-      {expenses.length === 0 ? (
+      {income.length === 0 ? (
         <div className="border-border text-muted-foreground rounded-xl border border-dashed p-10 text-center text-sm">
-          No expenses logged yet. Add your first one - lunch, petrol,
-          groceries, anything.
+          No income logged yet. Add a side gig payout, a repayment from a
+          friend, anything coming in.
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {expenses.map((expense) => (
-            <ExpenseRow
-              key={expense.id}
-              expense={expense}
+          {income.map((entry) => (
+            <IncomeRow
+              key={entry.id}
+              income={entry}
               wallets={wallets}
-              onEdit={() => setDialogState({ open: true, expense })}
+              onEdit={() => setDialogState({ open: true, income: entry })}
             />
           ))}
         </div>
       )}
 
-      <ExpenseDialog
+      <IncomeDialog
         open={dialogState.open}
-        expense={dialogState.expense}
+        income={dialogState.income}
         wallets={wallets}
         onOpenChange={(open) => setDialogState((s) => ({ ...s, open }))}
       />

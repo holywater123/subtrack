@@ -20,6 +20,28 @@ export interface Expense {
   note: string | null;
   receipt_path: string | null;
   receipt_uploaded_at: string | null;
+  wallet_id: string | null;
+  created_at: string;
+}
+
+export interface Wallet {
+  id: string;
+  name: string;
+  wallet_type: string;
+  description: string | null;
+  currency: string;
+  starting_balance: number;
+  created_at: string;
+}
+
+export interface Income {
+  id: string;
+  amount: number;
+  currency: string;
+  category: string;
+  received_on: string;
+  note: string | null;
+  wallet_id: string | null;
   created_at: string;
 }
 

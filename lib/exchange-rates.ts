@@ -70,3 +70,16 @@ export function convertToBase(
   const rate = rates[currency] ?? 1;
   return amount / rate;
 }
+
+// Converts between two arbitrary currencies using a single rates object
+// anchored at some base currency (e.g. from getExchangeRates(BASE_CURRENCY)),
+// by routing through that base: amount -> base -> `to`.
+export function convertAmount(
+  amount: number,
+  from: string,
+  to: string,
+  ratesAnchoredAtBase: Record<string, number>
+) {
+  const inBase = convertToBase(amount, from, ratesAnchoredAtBase);
+  return inBase * (ratesAnchoredAtBase[to] ?? 1);
+}

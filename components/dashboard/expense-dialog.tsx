@@ -20,8 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Expense } from "@/lib/types";
-import { CURRENCIES } from "@/lib/currencies";
+import type { Expense, Wallet } from "@/lib/types";
+import { CURRENCY_ITEMS } from "@/lib/currencies";
 import { CATEGORIES, getCategory } from "@/lib/categories";
 import {
   addExpense,
@@ -37,10 +37,12 @@ function today() {
 export function ExpenseDialog({
   open,
   expense,
+  wallets,
   onOpenChange,
 }: {
   open: boolean;
   expense?: Expense;
+  wallets: Wallet[];
   onOpenChange: (open: boolean) => void;
 }) {
   return (
@@ -50,6 +52,7 @@ export function ExpenseDialog({
           <ExpenseForm
             key={expense?.id ?? "new"}
             expense={expense}
+            wallets={wallets}
             onDone={() => onOpenChange(false)}
           />
         )}
@@ -60,9 +63,11 @@ export function ExpenseDialog({
 
 function ExpenseForm({
   expense,
+  wallets,
   onDone,
 }: {
   expense?: Expense;
+  wallets: Wallet[];
   onDone: () => void;
 }) {
   const isEditing = Boolean(expense);
@@ -76,11 +81,17 @@ function ExpenseForm({
   const [spentOn, setSpentOn] = useState(expense?.spent_on ?? today());
   const [note, setNote] = useState(expense?.note ?? "");
   const [receiptPath, setReceiptPath] = useState(expense?.receipt_path ?? "");
+  const [walletId, setWalletId] = useState(expense?.wallet_id ?? "none");
   const [scanFile, setScanFile] = useState<File | null>(null);
   const [hint, setHint] = useState("");
   const [isPending, startTransition] = useTransition();
   const [isScanning, startScanning] = useTransition();
   const [isViewingReceipt, startViewingReceipt] = useTransition();
+
+  const walletItems = [
+    { value: "none", label: "Unassigned (cash pool)" },
+    ...wallets.map((w) => ({ value: w.id, label: w.name })),
+  ];
 
   function handleScan() {
     if (!scanFile) {
@@ -135,6 +146,7 @@ function ExpenseForm({
     formData.set("spentOn", spentOn);
     formData.set("note", note);
     formData.set("receiptPath", receiptPath);
+    formData.set("walletId", walletId);
 
     startTransition(async () => {
       const result = expense
@@ -212,6 +224,7 @@ function ExpenseForm({
           <div className="flex flex-col gap-2">
             <Label>Currency</Label>
             <Select
+              items={CURRENCY_ITEMS}
               value={currency}
               onValueChange={(v) => v && setCurrency(v)}
             >
@@ -219,9 +232,9 @@ function ExpenseForm({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {CURRENCIES.map((c) => (
-                  <SelectItem key={c.code} value={c.code}>
-                    {c.code} - {c.label}
+                {CURRENCY_ITEMS.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>
+                    {c.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -232,6 +245,7 @@ function ExpenseForm({
           <div className="flex flex-col gap-2">
             <Label>Category</Label>
             <Select
+              items={CATEGORIES}
               value={category}
               onValueChange={(v) => v && setCategory(v)}
             >
@@ -266,6 +280,25 @@ function ExpenseForm({
             onChange={(e) => setNote(e.target.value)}
             placeholder="Lunch with friends, petrol top-up..."
           />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label>Wallet</Label>
+          <Select
+            items={walletItems}
+            value={walletId}
+            onValueChange={(v) => v && setWalletId(v)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {walletItems.map((w) => (
+                <SelectItem key={w.value} value={w.value}>
+                  {w.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <DialogFooter>
           <Button type="submit" disabled={isPending}>

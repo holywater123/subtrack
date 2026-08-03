@@ -19,35 +19,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Subscription } from "@/lib/types";
+import type { Income, Wallet } from "@/lib/types";
 import { CURRENCY_ITEMS } from "@/lib/currencies";
-import { CATEGORIES, getCategory } from "@/lib/categories";
-import { addSubscription, updateSubscription } from "@/app/dashboard/actions";
+import { INCOME_CATEGORIES } from "@/lib/income-categories";
+import { addIncome, updateIncome } from "@/app/dashboard/income/actions";
 
-const BILLING_CYCLE_ITEMS = [
-  { value: "monthly", label: "Monthly" },
-  { value: "yearly", label: "Yearly" },
-  { value: "weekly", label: "Weekly" },
-];
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
 
-export function SubscriptionDialog({
+export function IncomeDialog({
   open,
-  subscription,
+  income,
+  wallets,
   onOpenChange,
 }: {
   open: boolean;
-  subscription?: Subscription;
+  income?: Income;
+  wallets: Wallet[];
   onOpenChange: (open: boolean) => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         {open && (
-          <SubscriptionForm
-            // Remounts the form (resetting its state) whenever a different
-            // subscription is opened, instead of syncing props via an effect.
-            key={subscription?.id ?? "new"}
-            subscription={subscription}
+          <IncomeForm
+            key={income?.id ?? "new"}
+            income={income}
+            wallets={wallets}
             onDone={() => onOpenChange(false)}
           />
         )}
@@ -56,46 +55,49 @@ export function SubscriptionDialog({
   );
 }
 
-function SubscriptionForm({
-  subscription,
+function IncomeForm({
+  income,
+  wallets,
   onDone,
 }: {
-  subscription?: Subscription;
+  income?: Income;
+  wallets: Wallet[];
   onDone: () => void;
 }) {
-  const isEditing = Boolean(subscription);
-  const [name, setName] = useState(subscription?.name ?? "");
-  const [price, setPrice] = useState(
-    subscription ? String(subscription.price) : ""
-  );
-  const [currency, setCurrency] = useState(subscription?.currency ?? "USD");
-  const [billingCycle, setBillingCycle] = useState<
-    Subscription["billing_cycle"]
-  >(subscription?.billing_cycle ?? "monthly");
-  const [category, setCategory] = useState(
-    getCategory(subscription?.category ?? "other").value
-  );
+  const isEditing = Boolean(income);
+  const [amount, setAmount] = useState(income ? String(income.amount) : "");
+  const [currency, setCurrency] = useState(income?.currency ?? "MYR");
+  const [category, setCategory] = useState(income?.category ?? "other");
+  const [receivedOn, setReceivedOn] = useState(income?.received_on ?? today());
+  const [note, setNote] = useState(income?.note ?? "");
+  const [walletId, setWalletId] = useState(income?.wallet_id ?? "none");
   const [isPending, startTransition] = useTransition();
+
+  const walletItems = [
+    { value: "none", label: "Unassigned (cash pool)" },
+    ...wallets.map((w) => ({ value: w.id, label: w.name })),
+  ];
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const formData = new FormData();
-    formData.set("name", name);
-    formData.set("price", price);
+    formData.set("amount", amount);
     formData.set("currency", currency);
-    formData.set("billingCycle", billingCycle);
     formData.set("category", category);
+    formData.set("receivedOn", receivedOn);
+    formData.set("note", note);
+    formData.set("walletId", walletId);
 
     startTransition(async () => {
-      const result = subscription
-        ? await updateSubscription(subscription.id, formData)
-        : await addSubscription(formData);
+      const result = income
+        ? await updateIncome(income.id, formData)
+        : await addIncome(formData);
 
       if ("error" in result) {
         toast.error(result.error);
         return;
       }
-      toast.success(isEditing ? "Subscription updated" : "Subscription added");
+      toast.success(isEditing ? "Income updated" : "Income added");
       onDone();
     });
   }
@@ -103,31 +105,19 @@ function SubscriptionForm({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>
-          {isEditing ? "Edit subscription" : "Add subscription"}
-        </DialogTitle>
+        <DialogTitle>{isEditing ? "Edit income" : "Add income"}</DialogTitle>
       </DialogHeader>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="name">Name</Label>
-          <Input
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="ChatGPT Plus, Google One, CapCut Pro..."
-            required
-          />
-        </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="price">Price</Label>
+            <Label htmlFor="amount">Amount</Label>
             <Input
-              id="price"
+              id="amount"
               type="number"
               min="0"
               step="0.01"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
               required
             />
           </div>
@@ -153,30 +143,9 @@ function SubscriptionForm({
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-2">
-            <Label>Billing cycle</Label>
-            <Select
-              items={BILLING_CYCLE_ITEMS}
-              value={billingCycle}
-              onValueChange={(v) =>
-                v && setBillingCycle(v as Subscription["billing_cycle"])
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {BILLING_CYCLE_ITEMS.map((b) => (
-                  <SelectItem key={b.value} value={b.value}>
-                    {b.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-col gap-2">
             <Label>Category</Label>
             <Select
-              items={CATEGORIES}
+              items={INCOME_CATEGORIES}
               value={category}
               onValueChange={(v) => v && setCategory(v)}
             >
@@ -184,7 +153,7 @@ function SubscriptionForm({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {CATEGORIES.map((c) => (
+                {INCOME_CATEGORIES.map((c) => (
                   <SelectItem key={c.value} value={c.value}>
                     {c.label}
                   </SelectItem>
@@ -192,6 +161,44 @@ function SubscriptionForm({
               </SelectContent>
             </Select>
           </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="receivedOn">Date</Label>
+            <Input
+              id="receivedOn"
+              type="date"
+              value={receivedOn}
+              onChange={(e) => setReceivedOn(e.target.value)}
+              required
+            />
+          </div>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label>Wallet</Label>
+          <Select
+            items={walletItems}
+            value={walletId}
+            onValueChange={(v) => v && setWalletId(v)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {walletItems.map((w) => (
+                <SelectItem key={w.value} value={w.value}>
+                  {w.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="note">Note (optional)</Label>
+          <Input
+            id="note"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Freelance gig, John paid back lunch..."
+          />
         </div>
         <DialogFooter>
           <Button type="submit" disabled={isPending}>
@@ -199,7 +206,7 @@ function SubscriptionForm({
               ? "Saving..."
               : isEditing
                 ? "Save changes"
-                : "Add subscription"}
+                : "Add income"}
           </Button>
         </DialogFooter>
       </form>
