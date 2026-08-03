@@ -20,3 +20,14 @@ export interface Expense {
   note: string | null;
   created_at: string;
 }
+
+export interface Debt {
+  id: string;
+  name: string;
+  debt_type: string;
+  balance: number;
+  currency: string;
+  interest_rate: number | null;
+  due_date: string | null;
+  created_at: string;
+}

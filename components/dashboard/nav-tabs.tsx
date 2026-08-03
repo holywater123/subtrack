@@ -9,6 +9,7 @@ const TABS = [
   { href: "/dashboard/subscriptions", label: "Subscriptions" },
   { href: "/dashboard/expenses", label: "Expenses" },
   { href: "/dashboard/budgets", label: "Budgets" },
+  { href: "/dashboard/debts", label: "Debts" },
 ];
 
 export function NavTabs() {
