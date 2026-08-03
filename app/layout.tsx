@@ -1,12 +1,23 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
+import { Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const maximaNouva = localFont({
+  variable: "--font-maxima-nouva",
+  src: [
+    { path: "./fonts/MaximaNouva/MaximaNouva-Thin.ttf", weight: "100", style: "normal" },
+    { path: "./fonts/MaximaNouva/MaximaNouva-ThinItalic.ttf", weight: "100", style: "italic" },
+    { path: "./fonts/MaximaNouva/MaximaNouva-Regular.ttf", weight: "400", style: "normal" },
+    { path: "./fonts/MaximaNouva/MaximaNouva-Italic.ttf", weight: "400", style: "italic" },
+    { path: "./fonts/MaximaNouva/MaximaNouva-SemiBold.ttf", weight: "600", style: "normal" },
+    { path: "./fonts/MaximaNouva/MaximaNouva-Bold.ttf", weight: "700", style: "normal" },
+    { path: "./fonts/MaximaNouva/MaximaNouva-BoldItalic.ttf", weight: "700", style: "italic" },
+    { path: "./fonts/MaximaNouva/MaximaNouva-ExtraBold.ttf", weight: "800", style: "normal" },
+    { path: "./fonts/MaximaNouva/MaximaNouva-ExtraBoldItalic.ttf", weight: "800", style: "italic" },
+  ],
 });
 
 const geistMono = Geist_Mono({
@@ -29,7 +40,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${maximaNouva.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider
