@@ -7,7 +7,7 @@ import type { Subscription } from "@/lib/types";
 
 const CACHE_HOURS = 24;
 const OPENROUTER_MODEL =
-  process.env.OPENROUTER_MODEL || "anthropic/claude-3.5-haiku";
+  process.env.OPENROUTER_MODEL || "anthropic/claude-haiku-4.5";
 
 const FALLBACK_NO_DATA =
   "Log a few expenses to get personalized spending insights.";

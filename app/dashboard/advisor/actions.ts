@@ -8,7 +8,7 @@ type SendResult = { error: string } | { success: true; reply: string };
 type ActionResult = { error: string } | { success: true };
 
 const OPENROUTER_MODEL =
-  process.env.OPENROUTER_MODEL || "anthropic/claude-3.5-haiku";
+  process.env.OPENROUTER_MODEL || "anthropic/claude-haiku-4.5";
 const MAX_MESSAGE_LENGTH = 2000;
 const HISTORY_LIMIT = 12;
 
