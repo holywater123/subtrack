@@ -35,13 +35,29 @@ export function WalletsClient({
   }>({ open: false });
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const wallets = walletRows.map((row) => row.wallet);
+  const cashPoolRow = walletRows.find((row) => row.wallet.is_cash_pool);
 
   return (
     <div className="flex flex-col gap-6">
-      <TotalSpendCard
-        label="Unassigned"
-        totalMonthly={unassignedTotal}
-        subtitle="Income and expenses not assigned to any wallet - converted to the base currency"
+      {cashPoolRow ? (
+        <TotalSpendCard
+          label="Cash pool"
+          totalMonthly={cashPoolRow.balance}
+          subtitle={`Balance in ${cashPoolRow.wallet.name} - where new income and expenses land by default`}
+          baseCurrency={cashPoolRow.wallet.currency}
+        />
+      ) : (
+        <TotalSpendCard
+          label="Unassigned"
+          totalMonthly={unassignedTotal}
+          subtitle="Income and expenses not assigned to any wallet - converted to the base currency. Star a wallet below to set it as your cash pool."
+          baseCurrency={baseCurrency}
+        />
+      )}
+
+      <WalletsBreakdown
+        totalCashOnHand={totalCashOnHand}
+        typeBreakdown={typeBreakdown}
         baseCurrency={baseCurrency}
       />
 
@@ -118,12 +134,6 @@ export function WalletsClient({
           </div>
         </div>
       )}
-
-      <WalletsBreakdown
-        totalCashOnHand={totalCashOnHand}
-        typeBreakdown={typeBreakdown}
-        baseCurrency={baseCurrency}
-      />
     </div>
   );
 }
