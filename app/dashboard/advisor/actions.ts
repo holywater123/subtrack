@@ -85,7 +85,8 @@ export async function sendChatMessage(formData: FormData): Promise<SendResult> {
     );
 
     if (!response.ok) {
-      throw new Error(`OpenRouter returned ${response.status}`);
+      const body = await response.text().catch(() => "");
+      throw new Error(`OpenRouter returned ${response.status}: ${body.slice(0, 300)}`);
     }
 
     const data = await response.json();
@@ -99,9 +100,10 @@ export async function sendChatMessage(formData: FormData): Promise<SendResult> {
 
     revalidatePath("/dashboard/advisor");
     return { success: true, reply };
-  } catch {
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
     return {
-      error: "Couldn't reach the AI advisor right now - try again shortly.",
+      error: `Couldn't reach the AI advisor: ${detail}`,
     };
   }
 }
