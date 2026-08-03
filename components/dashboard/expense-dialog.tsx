@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import type { Expense } from "@/lib/types";
 import { CURRENCIES } from "@/lib/currencies";
-import { CATEGORIES } from "@/lib/categories";
+import { CATEGORIES, getCategory } from "@/lib/categories";
 import {
   addExpense,
   updateExpense,
@@ -70,7 +70,9 @@ function ExpenseForm({
     expense ? String(expense.amount) : ""
   );
   const [currency, setCurrency] = useState(expense?.currency ?? "MYR");
-  const [category, setCategory] = useState(expense?.category ?? "other");
+  const [category, setCategory] = useState(
+    getCategory(expense?.category ?? "other").value
+  );
   const [spentOn, setSpentOn] = useState(expense?.spent_on ?? today());
   const [note, setNote] = useState(expense?.note ?? "");
   const [receiptPath, setReceiptPath] = useState(expense?.receipt_path ?? "");

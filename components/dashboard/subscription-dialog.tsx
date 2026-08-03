@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import type { Subscription } from "@/lib/types";
 import { CURRENCIES } from "@/lib/currencies";
-import { CATEGORIES } from "@/lib/categories";
+import { CATEGORIES, getCategory } from "@/lib/categories";
 import { addSubscription, updateSubscription } from "@/app/dashboard/actions";
 
 export function SubscriptionDialog({
@@ -66,7 +66,9 @@ function SubscriptionForm({
   const [billingCycle, setBillingCycle] = useState<
     Subscription["billing_cycle"]
   >(subscription?.billing_cycle ?? "monthly");
-  const [category, setCategory] = useState(subscription?.category ?? "other");
+  const [category, setCategory] = useState(
+    getCategory(subscription?.category ?? "other").value
+  );
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(e: FormEvent) {

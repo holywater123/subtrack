@@ -5,9 +5,21 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExpenseRow } from "@/components/dashboard/expense-row";
 import { ExpenseDialog } from "@/components/dashboard/expense-dialog";
+import {
+  ExpensesBreakdown,
+  type BreakdownExpense,
+} from "@/components/dashboard/expenses-breakdown";
 import type { Expense } from "@/lib/types";
 
-export function ExpensesClient({ expenses }: { expenses: Expense[] }) {
+export function ExpensesClient({
+  expenses,
+  breakdownExpenses,
+  baseCurrency,
+}: {
+  expenses: Expense[];
+  breakdownExpenses: BreakdownExpense[];
+  baseCurrency: string;
+}) {
   const [dialogState, setDialogState] = useState<{
     open: boolean;
     expense?: Expense;
@@ -15,6 +27,8 @@ export function ExpensesClient({ expenses }: { expenses: Expense[] }) {
 
   return (
     <div className="flex flex-col gap-6">
+      <ExpensesBreakdown expenses={breakdownExpenses} baseCurrency={baseCurrency} />
+
       <div className="flex items-center justify-between">
         <h2 className="text-muted-foreground text-sm font-medium">
           Recent expenses

@@ -6,34 +6,14 @@ import { Button } from "@/components/ui/button";
 import { currencySymbol } from "@/lib/currencies";
 import { cn } from "@/lib/utils";
 import type { ExpenseThisMonth } from "@/lib/finance-summary";
-
-type Period = "day" | "week" | "month";
-
-const PERIODS: { value: Period; label: string }[] = [
-  { value: "day", label: "Day" },
-  { value: "week", label: "Week" },
-  { value: "month", label: "Month" },
-];
-
-const AVG_DAYS_PER_MONTH = 30.44;
-
-function parseLocalDate(iso: string) {
-  const [year, month, day] = iso.split("-").map(Number);
-  return new Date(year, month - 1, day);
-}
-
-function daysIntoWeek(date: Date) {
-  // Monday = 1 ... Sunday = 7
-  const weekday = date.getDay();
-  return weekday === 0 ? 7 : weekday;
-}
-
-function startOfWeek(date: Date) {
-  const result = new Date(date);
-  result.setDate(date.getDate() - (daysIntoWeek(date) - 1));
-  result.setHours(0, 0, 0, 0);
-  return result;
-}
+import {
+  AVG_DAYS_PER_MONTH,
+  PERIODS,
+  daysIntoWeek,
+  parseLocalDate,
+  startOfWeek,
+  type Period,
+} from "@/lib/period";
 
 export function PeriodEstimateCard({
   subscriptionsMonthly,
@@ -59,7 +39,8 @@ export function PeriodEstimateCard({
       return {
         fixed,
         variableSoFar,
-        estimated: fixed + variableSoFar,
+        actual: fixed + variableSoFar,
+        projected: fixed + variableSoFar,
         note: "No projection for partial days - shown as spent so far.",
       };
     }
@@ -75,7 +56,8 @@ export function PeriodEstimateCard({
       return {
         fixed,
         variableSoFar,
-        estimated: fixed + estimatedVariable,
+        actual: fixed + variableSoFar,
+        projected: fixed + estimatedVariable,
         note: `Projected from ${elapsedDays} day${elapsedDays === 1 ? "" : "s"} so far this week.`,
       };
     }
@@ -91,7 +73,8 @@ export function PeriodEstimateCard({
     return {
       fixed: subscriptionsMonthly,
       variableSoFar,
-      estimated: subscriptionsMonthly + estimatedVariable,
+      actual: subscriptionsMonthly + variableSoFar,
+      projected: subscriptionsMonthly + estimatedVariable,
       note: `Projected from ${dayOfMonth} of ${daysInMonth} days this month.`,
     };
   }, [period, subscriptionsMonthly, expenses]);
@@ -99,7 +82,7 @@ export function PeriodEstimateCard({
   return (
     <MagicCard className="relative overflow-hidden rounded-2xl p-6">
       <div className="flex items-center justify-between gap-4">
-        <p className="text-muted-foreground text-sm">Estimated spending</p>
+        <p className="text-muted-foreground text-sm">Spending</p>
         <div className="bg-muted flex gap-0.5 rounded-full p-0.5">
           {PERIODS.map((p) => (
             <Button
@@ -122,10 +105,12 @@ export function PeriodEstimateCard({
       <div className="mt-2 flex items-baseline gap-1">
         <span className="text-3xl font-semibold">{symbol}</span>
         <span className="text-4xl font-semibold tracking-tight">
-          {stats.estimated.toFixed(2)}
+          {stats.actual.toFixed(2)}
         </span>
       </div>
-      <p className="text-muted-foreground mt-1 text-xs">{stats.note}</p>
+      <p className="text-muted-foreground mt-1 text-xs">
+        Actual spend so far this {period}
+      </p>
 
       <div className="mt-4 flex gap-4 border-t pt-4 text-sm">
         <div>
@@ -136,10 +121,20 @@ export function PeriodEstimateCard({
           </p>
         </div>
         <div>
-          <p className="text-muted-foreground text-xs">Variable so far</p>
+          <p className="text-muted-foreground text-xs">Variable</p>
           <p className="font-medium">
             {symbol}
             {stats.variableSoFar.toFixed(2)}
+          </p>
+        </div>
+        <div>
+          <p className="text-muted-foreground text-xs">Projected total</p>
+          <p className="font-medium">
+            {symbol}
+            {stats.projected.toFixed(2)}
+          </p>
+          <p className="text-muted-foreground mt-0.5 text-[11px]">
+            {stats.note}
           </p>
         </div>
       </div>
