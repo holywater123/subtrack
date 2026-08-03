@@ -6,11 +6,11 @@ import { MagicCard } from "@/components/ui/magic-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { BudgetProgress } from "@/components/dashboard/budget-progress";
-import type { Category } from "@/lib/categories";
+import { getCategory } from "@/lib/categories";
 import { setBudget } from "@/app/dashboard/budgets/actions";
 
 export interface BudgetRowData {
-  category: Category;
+  categoryValue: string;
   spend: number;
   budget: number | null;
 }
@@ -25,7 +25,11 @@ export function BudgetsClient({
   return (
     <div className="flex flex-col gap-3">
       {rows.map((row) => (
-        <BudgetRow key={row.category.value} row={row} baseCurrency={baseCurrency} />
+        <BudgetRow
+          key={row.categoryValue}
+          row={row}
+          baseCurrency={baseCurrency}
+        />
       ))}
     </div>
   );
@@ -38,7 +42,11 @@ function BudgetRow({
   row: BudgetRowData;
   baseCurrency: string;
 }) {
-  const { category, spend, budget } = row;
+  const { spend, budget } = row;
+  // Resolved client-side (rather than passed as a server prop) because a
+  // Category's `icon` is a component reference, which React Server
+  // Components can't serialize across the server->client prop boundary.
+  const category = getCategory(row.categoryValue);
   const [value, setValue] = useState(budget !== null ? String(budget) : "");
   const [isPending, startTransition] = useTransition();
 

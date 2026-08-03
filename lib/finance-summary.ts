@@ -26,19 +26,22 @@ function currentMonthRange() {
 // Budgets always agree on how much has been spent per category.
 export async function getFinanceSummary(): Promise<FinanceSummary> {
   const supabase = await createClient();
-  const rates = await getExchangeRates(BASE_CURRENCY);
-
-  const { data: subscriptionsData } = await supabase
-    .from("subscriptions")
-    .select("*");
-  const subscriptions = (subscriptionsData ?? []) as Subscription[];
-
   const { start, end } = currentMonthRange();
-  const { data: expensesData } = await supabase
-    .from("expenses")
-    .select("amount, currency, category")
-    .gte("spent_on", start)
-    .lt("spent_on", end);
+
+  // These three are independent - run them concurrently instead of
+  // sequentially awaiting each one, which was adding up to two extra
+  // network round-trips of latency per page load.
+  const [rates, { data: subscriptionsData }, { data: expensesData }] =
+    await Promise.all([
+      getExchangeRates(BASE_CURRENCY),
+      supabase.from("subscriptions").select("*"),
+      supabase
+        .from("expenses")
+        .select("amount, currency, category")
+        .gte("spent_on", start)
+        .lt("spent_on", end),
+    ]);
+  const subscriptions = (subscriptionsData ?? []) as Subscription[];
 
   const spendByCategory: Record<string, number> = {};
   for (const category of CATEGORY_VALUES) spendByCategory[category] = 0;

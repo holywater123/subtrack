@@ -17,7 +17,7 @@ export default async function BudgetsPage() {
   }
 
   const rows: BudgetRowData[] = CATEGORIES.map((category) => ({
-    category,
+    categoryValue: category.value,
     spend: spendByCategory[category.value] ?? 0,
     budget: budgetByCategory[category.value] ?? null,
   }));
