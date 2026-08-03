@@ -1,39 +1,67 @@
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { DashboardClient } from "@/components/dashboard/dashboard-client";
-import { getExchangeRates } from "@/lib/exchange-rates";
-import { monthlyEquivalentInBase } from "@/lib/subscription-math";
-import type { Subscription } from "@/lib/types";
+import { getFinanceSummary, BASE_CURRENCY } from "@/lib/finance-summary";
+import { CATEGORIES } from "@/lib/categories";
+import { TotalSpendCard } from "@/components/dashboard/total-spend-card";
+import { BudgetProgress } from "@/components/dashboard/budget-progress";
+import { MagicCard } from "@/components/ui/magic-card";
 
-const BASE_CURRENCY = "MYR";
-
-export default async function DashboardPage() {
+export default async function OverviewPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect("/login");
+  const [{ totalSubscriptionsMonthly, totalExpensesThisMonth, spendByCategory }, { data: budgetsData }] =
+    await Promise.all([
+      getFinanceSummary(),
+      supabase.from("budgets").select("category, monthly_amount"),
+    ]);
+
+  const budgetByCategory: Record<string, number> = {};
+  for (const b of budgetsData ?? []) {
+    budgetByCategory[b.category] = Number(b.monthly_amount);
   }
 
-  const { data: subscriptions } = await supabase
-    .from("subscriptions")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const totalMonthly = totalSubscriptionsMonthly + totalExpensesThisMonth;
 
-  const subs = (subscriptions ?? []) as Subscription[];
-  const rates = await getExchangeRates(BASE_CURRENCY);
-  const totalMonthly = subs
-    .filter((s) => !s.is_paused)
-    .reduce((sum, s) => sum + monthlyEquivalentInBase(s, rates), 0);
+  const budgetRows = CATEGORIES.filter(
+    (c) => budgetByCategory[c.value] !== undefined
+  ).map((c) => ({
+    category: c,
+    spend: spendByCategory[c.value] ?? 0,
+    budget: budgetByCategory[c.value],
+  }));
 
   return (
-    <DashboardClient
-      subscriptions={subs}
-      userEmail={user.email ?? ""}
-      totalMonthly={totalMonthly}
-      baseCurrency={BASE_CURRENCY}
-    />
+    <div className="flex flex-col gap-6">
+      <TotalSpendCard
+        totalMonthly={totalMonthly}
+        subtitle={`Subscriptions + this month's expenses - converted to ${BASE_CURRENCY}`}
+        baseCurrency={BASE_CURRENCY}
+      />
+
+      <div>
+        <h2 className="text-muted-foreground mb-3 text-sm font-medium">
+          Budgets
+        </h2>
+
+        {budgetRows.length === 0 ? (
+          <div className="border-border text-muted-foreground rounded-xl border border-dashed p-10 text-center text-sm">
+            No budgets set yet. Head to the Budgets tab to set a monthly cap
+            per category.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {budgetRows.map((row) => (
+              <MagicCard key={row.category.value} className="rounded-xl p-4">
+                <BudgetProgress
+                  category={row.category}
+                  spend={row.spend}
+                  budget={row.budget}
+                  baseCurrency={BASE_CURRENCY}
+                />
+              </MagicCard>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

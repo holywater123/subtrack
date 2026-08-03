@@ -1,23 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { LogOut, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { TotalSpendCard } from "@/components/dashboard/total-spend-card";
 import { SubscriptionCard } from "@/components/dashboard/subscription-card";
 import { SubscriptionDialog } from "@/components/dashboard/subscription-dialog";
-import { signOut } from "@/app/dashboard/actions";
 import type { Subscription } from "@/lib/types";
 
 export function DashboardClient({
   subscriptions,
-  userEmail,
   totalMonthly,
   baseCurrency,
 }: {
   subscriptions: Subscription[];
-  userEmail: string;
   totalMonthly: number;
   baseCurrency: string;
 }) {
@@ -26,31 +22,13 @@ export function DashboardClient({
     subscription?: Subscription;
   }>({ open: false });
 
-  return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8 sm:py-12">
-      <header className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">SubTrack</h1>
-          <p className="text-muted-foreground text-sm">{userEmail}</p>
-        </div>
-        <div className="flex items-center gap-1">
-          <ThemeToggle />
-          <form action={signOut}>
-            <Button
-              variant="ghost"
-              size="icon"
-              type="submit"
-              aria-label="Sign out"
-            >
-              <LogOut className="size-4" />
-            </Button>
-          </form>
-        </div>
-      </header>
+  const activeCount = subscriptions.filter((s) => !s.is_paused).length;
 
+  return (
+    <div className="flex flex-col gap-6">
       <TotalSpendCard
         totalMonthly={totalMonthly}
-        count={subscriptions.filter((s) => !s.is_paused).length}
+        subtitle={`Across ${activeCount} subscription${activeCount === 1 ? "" : "s"} - converted to ${baseCurrency}`}
         baseCurrency={baseCurrency}
       />
 

@@ -3,17 +3,19 @@ import { NumberTicker } from "@/components/ui/number-ticker";
 import { currencySymbol } from "@/lib/currencies";
 
 export function TotalSpendCard({
+  label = "Total per month",
   totalMonthly,
-  count,
+  subtitle,
   baseCurrency,
 }: {
+  label?: string;
   totalMonthly: number;
-  count: number;
+  subtitle: string;
   baseCurrency: string;
 }) {
   return (
     <MagicCard className="relative overflow-hidden rounded-2xl p-6">
-      <p className="text-muted-foreground text-sm">Total per month</p>
+      <p className="text-muted-foreground text-sm">{label}</p>
       <div className="mt-1 flex items-baseline gap-1">
         <span className="text-3xl font-semibold">
           {currencySymbol(baseCurrency)}
@@ -24,10 +26,7 @@ export function TotalSpendCard({
           className="text-4xl font-semibold tracking-tight"
         />
       </div>
-      <p className="text-muted-foreground mt-1 text-xs">
-        Across {count} subscription{count === 1 ? "" : "s"} - converted to{" "}
-        {baseCurrency}
-      </p>
+      <p className="text-muted-foreground mt-1 text-xs">{subtitle}</p>
     </MagicCard>
   );
 }

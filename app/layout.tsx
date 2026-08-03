@@ -15,8 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SubTrack - Track your subscriptions",
-  description: "Keep every subscription - AI tools, Google, CapCut, and more - in one place.",
+  title: "Gauge - Personal finance tracker",
+  description:
+    "Track subscriptions, everyday expenses, and budgets in one place.",
 };
 
 export default function RootLayout({

@@ -34,10 +34,10 @@ export default async function LoginPage({
       <MagicCard className="relative z-10 w-full max-w-sm rounded-2xl p-8">
         <div className="flex flex-col items-center gap-2 text-center">
           <span className="text-2xl font-semibold tracking-tight">
-            SubTrack
+            Gauge
           </span>
           <p className="text-muted-foreground text-sm">
-            Every subscription you pay for, in one place.
+            Subscriptions, expenses, and budgets - all in one place.
           </p>
         </div>
 

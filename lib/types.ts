@@ -10,3 +10,13 @@ export interface Subscription {
   is_paused: boolean;
   created_at: string;
 }
+
+export interface Expense {
+  id: string;
+  amount: number;
+  currency: string;
+  category: string;
+  spent_on: string;
+  note: string | null;
+  created_at: string;
+}
