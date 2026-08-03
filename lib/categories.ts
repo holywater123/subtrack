@@ -11,6 +11,7 @@ import {
   Newspaper,
   Plane,
   Scissors,
+  Shield,
   ShoppingBag,
   ShoppingCart,
   Sparkles,
@@ -70,6 +71,12 @@ export const CATEGORIES: Category[] = [
     color: "bg-indigo-500",
   },
   { value: "finance", label: "Finance", icon: Wallet, color: "bg-teal-500" },
+  {
+    value: "insurance",
+    label: "Insurance",
+    icon: Shield,
+    color: "bg-green-600",
+  },
   {
     value: "food_dining",
     label: "Food & Dining",
