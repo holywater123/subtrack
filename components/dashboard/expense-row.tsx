@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { toast } from "sonner";
-import { Pencil, Trash2 } from "lucide-react";
+import { Paperclip, Pencil, Trash2 } from "lucide-react";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Button } from "@/components/ui/button";
 import type { Expense } from "@/lib/types";
@@ -54,6 +54,9 @@ export function ExpenseRow({
             <span className="text-muted-foreground text-xs">
               {category.label}
             </span>
+            {expense.receipt_path && (
+              <Paperclip className="text-muted-foreground size-3" />
+            )}
           </div>
           <p className="text-muted-foreground truncate text-sm">
             {formatDate(expense.spent_on)}

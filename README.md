@@ -5,7 +5,7 @@ A personal finance tracker - subscriptions, everyday expenses, and per-category 
 ## 1. Create a Supabase project
 
 1. Go to [supabase.com](https://supabase.com) and create a new project (free tier is fine).
-2. Once it's ready, open **SQL Editor** and run the contents of [`supabase/schema.sql`](supabase/schema.sql). This creates the `subscriptions`, `expenses`, `budgets`, `ai_insights`, `debts`, `user_settings`, and `debt_advice` tables, all with Row Level Security so each user only ever sees their own rows.
+2. Once it's ready, open **SQL Editor** and run the contents of [`supabase/schema.sql`](supabase/schema.sql). This creates the `subscriptions`, `expenses`, `budgets`, `ai_insights`, `debts`, `user_settings`, and `debt_advice` tables (all with Row Level Security so each user only ever sees their own rows), plus a private `receipts` Storage bucket for scanned receipts.
 3. Open **Project Settings -> Data API**. Copy the **Project URL**.
 4. Open **Project Settings -> API Keys**. Copy the **anon / publishable** key (not the service role key).
 
@@ -21,10 +21,10 @@ A personal finance tracker - subscriptions, everyday expenses, and per-category 
    - **Site URL**: `http://localhost:3000` (update to your production URL after deploying).
    - **Redirect URLs**: add `http://localhost:3000/auth/callback` and, later, `https://<your-vercel-domain>/auth/callback`.
 
-## 3. Get an OpenRouter API key (for the AI spending insight and debt payoff advice)
+## 3. Get an OpenRouter API key (for AI features)
 
 1. Sign up at [openrouter.ai](https://openrouter.ai) and create an API key under **Keys**.
-2. Without this, the Overview tab's insight card and the Debts tab's payoff advice just show a placeholder message - everything else works fine without it.
+2. Powers three things: the Overview tab's spending insight, the Debts tab's payoff advice, and receipt scanning on the Expenses tab (which additionally needs a vision-capable model - see `OPENROUTER_VISION_MODEL` in `.env.local.example`). Without a key, all three just show a placeholder/error message - everything else works fine without it.
 
 ## 4. Configure environment variables
 
@@ -63,12 +63,13 @@ Open [http://localhost:3000](http://localhost:3000) - you should land on `/login
 - `app/dashboard/layout.tsx` - shared header + tab navigation (Overview / Subscriptions / Expenses / Budgets / Debts).
 - `app/dashboard/page.tsx` - Overview: period-based spend estimate, AI insight, budget progress.
 - `app/dashboard/subscriptions` - recurring subscriptions list, add/edit/pause/delete.
-- `app/dashboard/expenses` - one-off dated spending.
+- `app/dashboard/expenses` - one-off dated spending, optionally scanned from a receipt/screenshot photo (AI-extracted, always reviewable/editable before saving). Receipts are kept in Supabase Storage and auto-deleted after 45 days.
 - `app/dashboard/budgets` - per-category monthly budget caps.
 - `app/dashboard/debts` - debts (credit cards, BNPL, loans) with due dates/interest rates, monthly income, and AI payoff-priority advice. Statement upload/parsing is a planned fast-follow, not built yet.
 - `lib/supabase` - browser/server Supabase clients + the session-refresh helper used by `proxy.ts`.
 - `lib/finance-summary.ts` - combines subscriptions + this month's expenses into per-category totals (base currency: MYR).
 - `lib/ai-insight.ts` - generates (and caches, once per 24h) the AI spending insight via OpenRouter.
 - `lib/debt-advice.ts` - same caching pattern, generates AI debt-payoff advice from debts + income + spending.
+- `lib/receipt-cleanup.ts` - lazily deletes receipt uploads older than 45 days (runs on each Expenses page load, no cron job needed).
 - `supabase/schema.sql` - the full database schema to run once in a fresh Supabase project.
 - `supabase/migrations/` - incremental migrations, for applying changes to an already-running project.

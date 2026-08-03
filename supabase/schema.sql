@@ -32,6 +32,8 @@ create table expenses (
   category text not null default 'other',
   spent_on date not null default current_date,
   note text,
+  receipt_path text,
+  receipt_uploaded_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -126,3 +128,13 @@ create policy "Users manage their own debt_advice"
   for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+insert into storage.buckets (id, name, public)
+values ('receipts', 'receipts', false)
+on conflict (id) do nothing;
+
+create policy "Users manage their own receipt files"
+  on storage.objects
+  for all
+  using (bucket_id = 'receipts' and (storage.foldername(name))[1] = auth.uid()::text)
+  with check (bucket_id = 'receipts' and (storage.foldername(name))[1] = auth.uid()::text);

@@ -18,6 +18,8 @@ export interface Expense {
   category: string;
   spent_on: string;
   note: string | null;
+  receipt_path: string | null;
+  receipt_uploaded_at: string | null;
   created_at: string;
 }
 
