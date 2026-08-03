@@ -179,7 +179,6 @@ create index debts_user_id_idx on debts (user_id);
 
 create table user_settings (
   user_id uuid primary key references auth.users(id) on delete cascade,
-  monthly_income numeric(10, 2),
   full_name text,
   birthdate date,
   goal text,

@@ -141,29 +141,3 @@ export async function deleteDebt(id: string): Promise<ActionResult> {
   revalidateAll();
   return { success: true };
 }
-
-export async function setMonthlyIncome(
-  formData: FormData
-): Promise<ActionResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Not signed in." };
-
-  const income = Number(formData.get("income"));
-  if (!Number.isFinite(income) || income < 0) {
-    return { error: "Enter a valid income." };
-  }
-
-  const { error } = await supabase.from("user_settings").upsert({
-    user_id: user.id,
-    monthly_income: income,
-    updated_at: new Date().toISOString(),
-  });
-
-  if (error) return { error: error.message };
-
-  revalidateAll();
-  return { success: true };
-}

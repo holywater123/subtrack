@@ -13,6 +13,14 @@ const FALLBACK_NO_DATA = "Add your debts to get a payoff plan.";
 const FALLBACK_ERROR =
   "Debt advice isn't available right now - check back later.";
 
+function currentMonthRange() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const toISODate = (d: Date) => d.toISOString().slice(0, 10);
+  return { start: toISODate(start), end: toISODate(end) };
+}
+
 // Cached per-user in `debt_advice`, regenerated at most once every
 // CACHE_HOURS to keep OpenRouter usage low and predictable.
 export async function getDebtAdvice(): Promise<string> {
@@ -37,14 +45,16 @@ export async function getDebtAdvice(): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) return FALLBACK_NO_DATA;
 
-  const [{ data: debtsData }, { data: settingsData }, financeSummary] =
+  const { start, end } = currentMonthRange();
+
+  const [{ data: debtsData }, { data: incomeData }, financeSummary] =
     await Promise.all([
       supabase.from("debts").select("*"),
       supabase
-        .from("user_settings")
-        .select("monthly_income")
-        .eq("user_id", user.id)
-        .maybeSingle(),
+        .from("income")
+        .select("amount, currency")
+        .gte("received_on", start)
+        .lt("received_on", end),
       getFinanceSummary(),
     ]);
 
@@ -71,9 +81,14 @@ export async function getDebtAdvice(): Promise<string> {
       0
     );
 
-    const monthlyIncome = settingsData?.monthly_income
-      ? `${Number(settingsData.monthly_income).toFixed(2)} ${BASE_CURRENCY}`
-      : "not provided";
+    const incomeThisMonth = (incomeData ?? []).reduce(
+      (sum, i) => sum + convertToBase(i.amount, i.currency, rates),
+      0
+    );
+    const monthlyIncome =
+      incomeThisMonth > 0
+        ? `${incomeThisMonth.toFixed(2)} ${BASE_CURRENCY}`
+        : "not logged yet";
 
     const categoryBreakdown = Object.entries(financeSummary.spendByCategory)
       .filter(([, amount]) => amount > 0)
@@ -83,7 +98,7 @@ export async function getDebtAdvice(): Promise<string> {
 
     const prompt = `You are a personal finance assistant helping prioritize debt payoff. All amounts are in ${BASE_CURRENCY}.
 
-Monthly income: ${monthlyIncome}
+Income this month: ${monthlyIncome}
 Total debt: ${totalDebt.toFixed(2)}
 
 Debts:
