@@ -59,7 +59,7 @@ export function MagicCard(props: MagicCardProps) {
     children,
     className,
     gradientSize = 200,
-    gradientColor = "#262626",
+    gradientColor: gradientColorProp,
     gradientOpacity = 0.8,
     gradientFrom = "#9E7AFF",
     gradientTo = "#FE8BBB",
@@ -83,6 +83,14 @@ export function MagicCard(props: MagicCardProps) {
     const currentTheme = theme === "system" ? systemTheme : theme
     return currentTheme === "dark"
   }, [theme, systemTheme, mounted])
+
+  // Defaults to a near-black spotlight in dark mode and a soft lavender tint
+  // (matching the purple/pink edge gradient below) in light mode - the fixed
+  // "#262626" default looked like a black smudge on light-mode cards, and a
+  // flat grey didn't match the colored edge glow. Callers can still override
+  // via the `gradientColor` prop.
+  const gradientColor =
+    gradientColorProp ?? (isDarkTheme ? "#262626" : "#F1E9FE")
 
   const mouseX = useMotionValue(-gradientSize)
   const mouseY = useMotionValue(-gradientSize)
