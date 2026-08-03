@@ -7,7 +7,9 @@ create table subscriptions (
   user_id uuid not null references auth.users(id) on delete cascade,
   name text not null,
   price numeric(10, 2) not null,
+  currency text not null default 'USD',
   billing_cycle billing_cycle not null default 'monthly',
+  is_paused boolean not null default false,
   created_at timestamptz not null default now()
 );
 

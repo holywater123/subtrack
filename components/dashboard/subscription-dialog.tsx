@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Subscription } from "@/lib/types";
+import { CURRENCIES } from "@/lib/currencies";
 import { addSubscription, updateSubscription } from "@/app/dashboard/actions";
 
 export function SubscriptionDialog({
@@ -60,6 +61,7 @@ function SubscriptionForm({
   const [price, setPrice] = useState(
     subscription ? String(subscription.price) : ""
   );
+  const [currency, setCurrency] = useState(subscription?.currency ?? "USD");
   const [billingCycle, setBillingCycle] = useState<
     Subscription["billing_cycle"]
   >(subscription?.billing_cycle ?? "monthly");
@@ -70,6 +72,7 @@ function SubscriptionForm({
     const formData = new FormData();
     formData.set("name", name);
     formData.set("price", price);
+    formData.set("currency", currency);
     formData.set("billingCycle", billingCycle);
 
     startTransition(async () => {
@@ -106,7 +109,7 @@ function SubscriptionForm({
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="price">Price ($)</Label>
+            <Label htmlFor="price">Price</Label>
             <Input
               id="price"
               type="number"
@@ -118,23 +121,41 @@ function SubscriptionForm({
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label>Billing cycle</Label>
+            <Label>Currency</Label>
             <Select
-              value={billingCycle}
-              onValueChange={(v) =>
-                setBillingCycle(v as Subscription["billing_cycle"])
-              }
+              value={currency}
+              onValueChange={(v) => v && setCurrency(v)}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="monthly">Monthly</SelectItem>
-                <SelectItem value="yearly">Yearly</SelectItem>
-                <SelectItem value="weekly">Weekly</SelectItem>
+                {CURRENCIES.map((c) => (
+                  <SelectItem key={c.code} value={c.code}>
+                    {c.code} - {c.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label>Billing cycle</Label>
+          <Select
+            value={billingCycle}
+            onValueChange={(v) =>
+              v && setBillingCycle(v as Subscription["billing_cycle"])
+            }
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="monthly">Monthly</SelectItem>
+              <SelectItem value="yearly">Yearly</SelectItem>
+              <SelectItem value="weekly">Weekly</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <DialogFooter>
           <Button type="submit" disabled={isPending}>

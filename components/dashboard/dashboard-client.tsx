@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { LogOut, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -8,25 +8,23 @@ import { TotalSpendCard } from "@/components/dashboard/total-spend-card";
 import { SubscriptionCard } from "@/components/dashboard/subscription-card";
 import { SubscriptionDialog } from "@/components/dashboard/subscription-dialog";
 import { signOut } from "@/app/dashboard/actions";
-import { monthlyEquivalent } from "@/lib/subscription-math";
 import type { Subscription } from "@/lib/types";
 
 export function DashboardClient({
   subscriptions,
   userEmail,
+  totalMonthly,
+  baseCurrency,
 }: {
   subscriptions: Subscription[];
   userEmail: string;
+  totalMonthly: number;
+  baseCurrency: string;
 }) {
   const [dialogState, setDialogState] = useState<{
     open: boolean;
     subscription?: Subscription;
   }>({ open: false });
-
-  const totalMonthly = useMemo(
-    () => subscriptions.reduce((sum, s) => sum + monthlyEquivalent(s), 0),
-    [subscriptions]
-  );
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8 sm:py-12">
@@ -50,7 +48,11 @@ export function DashboardClient({
         </div>
       </header>
 
-      <TotalSpendCard totalMonthly={totalMonthly} count={subscriptions.length} />
+      <TotalSpendCard
+        totalMonthly={totalMonthly}
+        count={subscriptions.filter((s) => !s.is_paused).length}
+        baseCurrency={baseCurrency}
+      />
 
       <div className="flex items-center justify-between">
         <h2 className="text-muted-foreground text-sm font-medium">

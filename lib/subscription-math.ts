@@ -1,4 +1,5 @@
 import type { Subscription } from "@/lib/types";
+import { convertToBase } from "@/lib/exchange-rates";
 
 const WEEKS_PER_MONTH = 52 / 12;
 
@@ -13,4 +14,15 @@ export function monthlyEquivalent(
     default:
       return subscription.price;
   }
+}
+
+export function monthlyEquivalentInBase(
+  subscription: Pick<Subscription, "price" | "billing_cycle" | "currency">,
+  rates: Record<string, number>
+) {
+  return convertToBase(
+    monthlyEquivalent(subscription),
+    subscription.currency,
+    rates
+  );
 }
