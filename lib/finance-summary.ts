@@ -6,11 +6,17 @@ import type { Subscription } from "@/lib/types";
 
 export const BASE_CURRENCY = "MYR";
 
+export interface ExpenseThisMonth {
+  amountBase: number;
+  spentOn: string;
+}
+
 export interface FinanceSummary {
   subscriptions: Subscription[];
   totalSubscriptionsMonthly: number;
   totalExpensesThisMonth: number;
   spendByCategory: Record<string, number>;
+  expensesThisMonth: ExpenseThisMonth[];
 }
 
 function currentMonthRange() {
@@ -37,7 +43,7 @@ export async function getFinanceSummary(): Promise<FinanceSummary> {
       supabase.from("subscriptions").select("*"),
       supabase
         .from("expenses")
-        .select("amount, currency, category")
+        .select("amount, currency, category, spent_on")
         .gte("spent_on", start)
         .lt("spent_on", end),
     ]);
@@ -55,11 +61,13 @@ export async function getFinanceSummary(): Promise<FinanceSummary> {
   }
 
   let totalExpensesThisMonth = 0;
+  const expensesThisMonth: ExpenseThisMonth[] = [];
   for (const expense of expensesData ?? []) {
     const amount = convertToBase(expense.amount, expense.currency, rates);
     totalExpensesThisMonth += amount;
     spendByCategory[expense.category] =
       (spendByCategory[expense.category] ?? 0) + amount;
+    expensesThisMonth.push({ amountBase: amount, spentOn: expense.spent_on });
   }
 
   return {
@@ -67,5 +75,6 @@ export async function getFinanceSummary(): Promise<FinanceSummary> {
     totalSubscriptionsMonthly,
     totalExpensesThisMonth,
     spendByCategory,
+    expensesThisMonth,
   };
 }

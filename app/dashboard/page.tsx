@@ -1,25 +1,28 @@
 import { createClient } from "@/lib/supabase/server";
 import { getFinanceSummary, BASE_CURRENCY } from "@/lib/finance-summary";
+import { getSpendingInsight } from "@/lib/ai-insight";
 import { CATEGORIES } from "@/lib/categories";
-import { TotalSpendCard } from "@/components/dashboard/total-spend-card";
+import { PeriodEstimateCard } from "@/components/dashboard/period-estimate-card";
+import { AiInsightCard } from "@/components/dashboard/ai-insight-card";
 import { BudgetProgress } from "@/components/dashboard/budget-progress";
 import { MagicCard } from "@/components/ui/magic-card";
 
 export default async function OverviewPage() {
   const supabase = await createClient();
 
-  const [{ totalSubscriptionsMonthly, totalExpensesThisMonth, spendByCategory }, { data: budgetsData }] =
-    await Promise.all([
-      getFinanceSummary(),
-      supabase.from("budgets").select("category, monthly_amount"),
-    ]);
+  const [financeSummary, insight, { data: budgetsData }] = await Promise.all([
+    getFinanceSummary(),
+    getSpendingInsight(),
+    supabase.from("budgets").select("category, monthly_amount"),
+  ]);
+
+  const { totalSubscriptionsMonthly, spendByCategory, expensesThisMonth } =
+    financeSummary;
 
   const budgetByCategory: Record<string, number> = {};
   for (const b of budgetsData ?? []) {
     budgetByCategory[b.category] = Number(b.monthly_amount);
   }
-
-  const totalMonthly = totalSubscriptionsMonthly + totalExpensesThisMonth;
 
   const budgetRows = CATEGORIES.filter(
     (c) => budgetByCategory[c.value] !== undefined
@@ -31,11 +34,13 @@ export default async function OverviewPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <TotalSpendCard
-        totalMonthly={totalMonthly}
-        subtitle={`Subscriptions + this month's expenses - converted to ${BASE_CURRENCY}`}
+      <PeriodEstimateCard
+        subscriptionsMonthly={totalSubscriptionsMonthly}
+        expenses={expensesThisMonth}
         baseCurrency={BASE_CURRENCY}
       />
+
+      <AiInsightCard insight={insight} />
 
       <div>
         <h2 className="text-muted-foreground mb-3 text-sm font-medium">
