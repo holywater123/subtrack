@@ -11,6 +11,7 @@ const OPENROUTER_MODEL =
   process.env.OPENROUTER_MODEL || "anthropic/claude-haiku-4.5";
 const MAX_MESSAGE_LENGTH = 2000;
 const HISTORY_LIMIT = 12;
+const REQUEST_TIMEOUT_MS = 25_000;
 
 const SYSTEM_PROMPT_HEADER = `You are the finance assistant built into a personal finance app called Gauge. You are not a licensed financial advisor and must never claim to be one.
 
@@ -81,6 +82,7 @@ export async function sendChatMessage(formData: FormData): Promise<SendResult> {
           messages,
           max_tokens: 400,
         }),
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       }
     );
 

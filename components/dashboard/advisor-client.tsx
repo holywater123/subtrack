@@ -50,20 +50,24 @@ export function AdvisorClient({ messages }: { messages: ChatMessage[] }) {
     formData.set("message", trimmed);
 
     startTransition(async () => {
-      const result = await sendChatMessage(formData);
-      if ("error" in result) {
-        toast.error(result.error);
-        return;
+      try {
+        const result = await sendChatMessage(formData);
+        if ("error" in result) {
+          toast.error(result.error);
+          return;
+        }
+        setItems((prev) => [
+          ...prev,
+          {
+            id: tempId(),
+            role: "assistant",
+            content: result.reply,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+      } catch {
+        toast.error("Something went wrong reaching the AI advisor.");
       }
-      setItems((prev) => [
-        ...prev,
-        {
-          id: tempId(),
-          role: "assistant",
-          content: result.reply,
-          created_at: new Date().toISOString(),
-        },
-      ]);
     });
   }
 
