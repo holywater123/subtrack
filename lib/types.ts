@@ -35,6 +35,17 @@ export interface Wallet {
   created_at: string;
 }
 
+export interface WalletTransfer {
+  id: string;
+  from_wallet_id: string;
+  to_wallet_id: string;
+  amount: number;
+  currency: string;
+  note: string | null;
+  transferred_on: string;
+  created_at: string;
+}
+
 export interface Income {
   id: string;
   amount: number;
@@ -43,6 +54,13 @@ export interface Income {
   received_on: string;
   note: string | null;
   wallet_id: string | null;
+  created_at: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
   created_at: string;
 }
 

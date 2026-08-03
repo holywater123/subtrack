@@ -289,22 +289,29 @@ function ExpenseForm({
         </div>
         <div className="flex flex-col gap-2">
           <Label>Wallet</Label>
-          <Select
-            items={walletItems}
-            value={walletId}
-            onValueChange={(v) => v && setWalletId(v)}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {walletItems.map((w) => (
-                <SelectItem key={w.value} value={w.value}>
-                  {w.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {!isEditing && cashPoolWallet ? (
+            <div className="border-input bg-muted/30 text-muted-foreground flex h-8 items-center rounded-lg border px-2.5 text-sm">
+              Goes into {cashPoolWallet.name} (cash pool) - use Transfer on
+              the Wallets tab to move it elsewhere later.
+            </div>
+          ) : (
+            <Select
+              items={walletItems}
+              value={walletId}
+              onValueChange={(v) => v && setWalletId(v)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {walletItems.map((w) => (
+                  <SelectItem key={w.value} value={w.value}>
+                    {w.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
         <DialogFooter>
           <Button type="submit" disabled={isPending}>

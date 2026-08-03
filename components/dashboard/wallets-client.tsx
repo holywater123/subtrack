@@ -1,25 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { ArrowLeftRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TotalSpendCard } from "@/components/dashboard/total-spend-card";
-import { WalletRow } from "@/components/dashboard/wallet-row";
+import { WalletCard } from "@/components/dashboard/wallet-card";
 import { WalletDialog } from "@/components/dashboard/wallet-dialog";
+import { WalletTransferDialog } from "@/components/dashboard/wallet-transfer-dialog";
+import { WalletTransferRow } from "@/components/dashboard/wallet-transfer-row";
 import {
   WalletsBreakdown,
   type WalletTypeBreakdownRow,
 } from "@/components/dashboard/wallets-breakdown";
-import type { Wallet } from "@/lib/types";
+import type { Wallet, WalletTransfer } from "@/lib/types";
 
 export function WalletsClient({
   walletRows,
+  transfers,
   unassignedTotal,
   totalCashOnHand,
   typeBreakdown,
   baseCurrency,
 }: {
   walletRows: { wallet: Wallet; balance: number }[];
+  transfers: WalletTransfer[];
   unassignedTotal: number;
   totalCashOnHand: number;
   typeBreakdown: WalletTypeBreakdownRow[];
@@ -29,6 +33,8 @@ export function WalletsClient({
     open: boolean;
     wallet?: Wallet;
   }>({ open: false });
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const wallets = walletRows.map((row) => row.wallet);
 
   return (
     <div className="flex flex-col gap-6">
@@ -43,14 +49,27 @@ export function WalletsClient({
         <h2 className="text-muted-foreground text-sm font-medium">
           Your wallets
         </h2>
-        <Button
-          size="sm"
-          className="gap-1.5"
-          onClick={() => setDialogState({ open: true })}
-        >
-          <Plus className="size-4" />
-          Add wallet
-        </Button>
+        <div className="flex gap-2">
+          {wallets.length >= 2 && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => setTransferDialogOpen(true)}
+            >
+              <ArrowLeftRight className="size-4" />
+              Transfer
+            </Button>
+          )}
+          <Button
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setDialogState({ open: true })}
+          >
+            <Plus className="size-4" />
+            Add wallet
+          </Button>
+        </div>
       </div>
 
       {walletRows.length === 0 ? (
@@ -59,9 +78,9 @@ export function WalletsClient({
           separating where your money actually sits.
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {walletRows.map((row) => (
-            <WalletRow
+            <WalletCard
               key={row.wallet.id}
               wallet={row.wallet}
               balance={row.balance}
@@ -76,6 +95,29 @@ export function WalletsClient({
         wallet={dialogState.wallet}
         onOpenChange={(open) => setDialogState((s) => ({ ...s, open }))}
       />
+
+      <WalletTransferDialog
+        open={transferDialogOpen}
+        wallets={wallets}
+        onOpenChange={setTransferDialogOpen}
+      />
+
+      {transfers.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <h2 className="text-muted-foreground text-sm font-medium">
+            Recent transfers
+          </h2>
+          <div className="flex flex-col gap-3">
+            {transfers.map((transfer) => (
+              <WalletTransferRow
+                key={transfer.id}
+                transfer={transfer}
+                wallets={wallets}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       <WalletsBreakdown
         totalCashOnHand={totalCashOnHand}

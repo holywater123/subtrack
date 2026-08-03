@@ -12,6 +12,7 @@ const TABS = [
   { href: "/dashboard/wallets", label: "Wallets" },
   { href: "/dashboard/budgets", label: "Budgets" },
   { href: "/dashboard/debts", label: "Debts" },
+  { href: "/dashboard/advisor", label: "Advisor" },
 ];
 
 export function NavTabs() {

@@ -143,6 +143,103 @@ export async function toggleCashPoolWallet(id: string): Promise<ActionResult> {
   return { success: true };
 }
 
+function parseTransferForm(formData: FormData): ActionResult & {
+  fromWalletId?: string;
+  toWalletId?: string;
+  amount?: number;
+  currency?: string;
+  transferredOn?: string;
+  note?: string | null;
+} {
+  const fromWalletId = String(formData.get("fromWalletId") ?? "");
+  const toWalletId = String(formData.get("toWalletId") ?? "");
+  const amount = Number(formData.get("amount"));
+  const currency = String(formData.get("currency") ?? "MYR");
+  const transferredOn = String(formData.get("transferredOn") ?? "");
+  const note = String(formData.get("note") ?? "").trim();
+
+  if (!fromWalletId || !toWalletId) {
+    return { error: "Choose both wallets." };
+  }
+  if (fromWalletId === toWalletId) {
+    return { error: "Choose two different wallets." };
+  }
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { error: "Enter a valid amount." };
+  }
+  if (!CURRENCY_CODES.includes(currency)) {
+    return { error: "Invalid currency." };
+  }
+  if (!transferredOn || Number.isNaN(Date.parse(transferredOn))) {
+    return { error: "Enter a valid date." };
+  }
+
+  return {
+    success: true,
+    fromWalletId,
+    toWalletId,
+    amount,
+    currency,
+    transferredOn,
+    note: note || null,
+  };
+}
+
+export async function addTransfer(formData: FormData): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not signed in." };
+
+  const parsed = parseTransferForm(formData);
+  if ("error" in parsed) return parsed;
+
+  const { data: ownedWallets } = await supabase
+    .from("wallets")
+    .select("id")
+    .eq("user_id", user.id)
+    .in("id", [parsed.fromWalletId!, parsed.toWalletId!]);
+
+  if ((ownedWallets ?? []).length !== 2) {
+    return { error: "Invalid wallet." };
+  }
+
+  const { error } = await supabase.from("wallet_transfers").insert({
+    user_id: user.id,
+    from_wallet_id: parsed.fromWalletId,
+    to_wallet_id: parsed.toWalletId,
+    amount: parsed.amount,
+    currency: parsed.currency,
+    transferred_on: parsed.transferredOn,
+    note: parsed.note,
+  });
+
+  if (error) return { error: error.message };
+
+  revalidateAll();
+  return { success: true };
+}
+
+export async function deleteTransfer(id: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not signed in." };
+
+  const { error } = await supabase
+    .from("wallet_transfers")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) return { error: error.message };
+
+  revalidateAll();
+  return { success: true };
+}
+
 export async function deleteWallet(id: string): Promise<ActionResult> {
   const supabase = await createClient();
   const {
