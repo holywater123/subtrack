@@ -24,7 +24,8 @@ export default async function LoginPage({
   return (
     <div className="relative flex flex-1 items-center justify-center overflow-hidden px-4">
       <DotPattern
-        glow
+        width={28}
+        height={28}
         className={cn(
           "[mask-image:radial-gradient(500px_circle_at_center,white,transparent)]"
         )}
