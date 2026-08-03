@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { quoteForDate } from "@/lib/finance-quotes";
+import { BlurFade } from "@/components/ui/blur-fade";
 
 function greetingForHour(hour: number) {
   if (hour < 12) return "Good morning";
@@ -15,6 +16,7 @@ export function DashboardGreeting({ name }: { name: string }) {
   const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- standard client-hydration-detection idiom, no derivable alternative
     setNow(new Date());
   }, []);
 
@@ -23,14 +25,18 @@ export function DashboardGreeting({ name }: { name: string }) {
 
   return (
     <div>
-      <h1 className="text-xl font-semibold tracking-tight">
-        {greeting}
-        {name ? `, ${name}` : ""}! Have you logged your finances today?
-      </h1>
+      <BlurFade duration={0.5}>
+        <h1 className="text-xl font-semibold tracking-tight">
+          {greeting}
+          {name ? `, ${name}` : ""}! Have you logged your finances today?
+        </h1>
+      </BlurFade>
       {quote && (
-        <p className="text-muted-foreground mt-0.5 text-sm italic">
-          &ldquo;{quote}&rdquo;
-        </p>
+        <BlurFade duration={0.5} delay={0.1}>
+          <p className="text-muted-foreground mt-0.5 text-sm italic">
+            &ldquo;{quote}&rdquo;
+          </p>
+        </BlurFade>
       )}
     </div>
   );

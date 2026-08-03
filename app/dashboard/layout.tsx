@@ -3,9 +3,10 @@ import Link from "next/link";
 import { Settings } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import { NavTabs } from "@/components/dashboard/nav-tabs";
 import { DashboardGreeting } from "@/components/dashboard/dashboard-greeting";
+import { DashboardParticles } from "@/components/dashboard/dashboard-particles";
 
 export default async function DashboardLayout({
   children,
@@ -29,10 +30,11 @@ export default async function DashboardLayout({
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8 sm:py-12">
+      <DashboardParticles />
       <header className="flex items-center justify-between gap-4">
         <DashboardGreeting name={settings?.full_name ?? ""} />
         <div className="flex items-center gap-1">
-          <ThemeToggle />
+          <AnimatedThemeToggler />
           <Link href="/dashboard/settings">
             <Button variant="ghost" size="icon" aria-label="Settings">
               <Settings className="size-4" />

@@ -149,3 +149,11 @@
     @apply font-sans;
   }
 }
+
+/* Let AnimatedThemeToggler's clip-path circle be the only transition effect -
+   otherwise the browser's default cross-fade plays underneath it too. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
