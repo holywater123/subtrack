@@ -26,17 +26,6 @@ function currentMonthRange() {
   return { start: toISODate(start), end: toISODate(end) };
 }
 
-// Covers everything the Spending trend card's week/month/year tabs need in
-// one query - back to the start of the current year, plus a week of buffer
-// so an early-January "week" view (which can dip into December) still has
-// data.
-function trendRangeStart() {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 1);
-  start.setDate(start.getDate() - 7);
-  return start.toISOString().slice(0, 10);
-}
-
 export default async function OverviewPage() {
   const supabase = await createClient();
   const { start, end } = currentMonthRange();
@@ -66,10 +55,10 @@ export default async function OverviewPage() {
       .select("overview_layout")
       .eq("user_id", user!.id)
       .maybeSingle(),
-    supabase
-      .from("expenses")
-      .select("amount, currency, spent_on")
-      .gte("spent_on", trendRangeStart()),
+    // Unbounded - the Spending trend card's week/month/year tabs let the
+    // user navigate to any past occurrence, not just the current one, so
+    // it needs full history (same as the Expenses tab's own fetch).
+    supabase.from("expenses").select("amount, currency, spent_on"),
     getExchangeRates(BASE_CURRENCY),
   ]);
 

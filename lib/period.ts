@@ -50,3 +50,74 @@ export function isInPeriod(spentOn: string, period: Period, now: Date) {
   if (period === "year") return date >= startOfYear(now);
   return date >= startOfMonth(now);
 }
+
+// --- Navigable period ranges (any reference date, not just "now") ---
+// isInPeriod above answers "in progress, through today" for the current
+// period only. These answer "within this specific period" for ANY
+// period - past, current, or (trivially, always-empty) future - which is
+// what letting a user pick a specific day/week/month/year needs.
+
+function startOfDay(date: Date) {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
+
+export function periodStart(period: Period, date: Date): Date {
+  if (period === "day") return startOfDay(date);
+  if (period === "week") return startOfWeek(date);
+  if (period === "year") return startOfYear(date);
+  return startOfMonth(date);
+}
+
+export function periodEnd(period: Period, date: Date): Date {
+  const start = periodStart(period, date);
+  const end = new Date(start);
+  if (period === "day") end.setDate(end.getDate() + 1);
+  else if (period === "week") end.setDate(end.getDate() + 7);
+  else if (period === "year") end.setFullYear(end.getFullYear() + 1);
+  else end.setMonth(end.getMonth() + 1);
+  return end;
+}
+
+export function isInPeriodRange(spentOn: string, period: Period, referenceDate: Date) {
+  const date = parseLocalDate(spentOn);
+  return date >= periodStart(period, referenceDate) && date < periodEnd(period, referenceDate);
+}
+
+export function shiftPeriod(date: Date, period: Period, direction: 1 | -1): Date {
+  const result = new Date(date);
+  if (period === "day") result.setDate(result.getDate() + direction);
+  else if (period === "week") result.setDate(result.getDate() + 7 * direction);
+  else if (period === "year") result.setFullYear(result.getFullYear() + direction);
+  else result.setMonth(result.getMonth() + direction);
+  return result;
+}
+
+export function isCurrentPeriod(period: Period, date: Date): boolean {
+  return periodStart(period, date).getTime() === periodStart(period, new Date()).getTime();
+}
+
+export function formatPeriodLabel(period: Period, date: Date): string {
+  if (period === "day") {
+    return date.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+  if (period === "week") {
+    const start = startOfWeek(date);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    const sameMonth = start.getMonth() === end.getMonth();
+    const startStr = start.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    const endStr = end.toLocaleDateString(
+      undefined,
+      sameMonth ? { day: "numeric" } : { month: "short", day: "numeric" }
+    );
+    return `${startStr}–${endStr}`;
+  }
+  if (period === "year") return String(date.getFullYear());
+  return date.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+}

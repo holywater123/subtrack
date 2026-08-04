@@ -12,12 +12,13 @@ import {
 } from "@/components/ui/select";
 import { ExpenseRow } from "@/components/dashboard/expense-row";
 import { ExpenseDialog } from "@/components/dashboard/expense-dialog";
+import { PeriodNav } from "@/components/ui/period-picker";
 import {
   ExpensesBreakdown,
   type BreakdownExpense,
 } from "@/components/dashboard/expenses-breakdown";
 import { CATEGORIES } from "@/lib/categories";
-import { PERIODS_WITH_YEAR, isInPeriod, type Period } from "@/lib/period";
+import { PERIODS_WITH_YEAR, isInPeriodRange, type Period } from "@/lib/period";
 import type { Expense, Wallet } from "@/lib/types";
 
 type SortOption = "date-desc" | "date-asc" | "amount-desc" | "amount-asc";
@@ -55,13 +56,15 @@ export function ExpensesClient({
     expense?: Expense;
   }>({ open: false });
   const [period, setPeriod] = useState<Period | "all">("all");
+  const [referenceDate, setReferenceDate] = useState(() => new Date());
   const [category, setCategory] = useState("all");
   const [sort, setSort] = useState<SortOption>("date-desc");
 
   const visibleExpenses = useMemo(() => {
-    const now = new Date();
     const filtered = expenses.filter((e) => {
-      if (period !== "all" && !isInPeriod(e.spent_on, period, now)) return false;
+      if (period !== "all" && !isInPeriodRange(e.spent_on, period, referenceDate)) {
+        return false;
+      }
       if (category !== "all" && e.category !== category) return false;
       return true;
     });
@@ -80,7 +83,7 @@ export function ExpensesClient({
     });
 
     return sorted;
-  }, [expenses, period, category, sort]);
+  }, [expenses, period, referenceDate, category, sort]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -105,7 +108,11 @@ export function ExpensesClient({
           <Select
             items={PERIOD_ITEMS}
             value={period}
-            onValueChange={(v) => v && setPeriod(v as Period | "all")}
+            onValueChange={(v) => {
+              if (!v) return;
+              setPeriod(v as Period | "all");
+              setReferenceDate(new Date());
+            }}
           >
             <SelectTrigger className="w-auto min-w-32 flex-1">
               <SelectValue />
@@ -118,6 +125,13 @@ export function ExpensesClient({
               ))}
             </SelectContent>
           </Select>
+          {period !== "all" && (
+            <PeriodNav
+              period={period}
+              referenceDate={referenceDate}
+              onReferenceDateChange={setReferenceDate}
+            />
+          )}
           <Select
             items={CATEGORY_ITEMS}
             value={category}

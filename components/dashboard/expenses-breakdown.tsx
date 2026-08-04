@@ -2,12 +2,16 @@
 
 import { useMemo, useState } from "react";
 import { MagicCard } from "@/components/ui/magic-card";
-import { Button } from "@/components/ui/button";
 import { CategoryBarChart } from "@/components/ui/category-bar-chart";
+import { PeriodPicker } from "@/components/ui/period-picker";
 import { currencySymbol } from "@/lib/currencies";
 import { getCategory } from "@/lib/categories";
-import { cn } from "@/lib/utils";
-import { PERIODS_WITH_YEAR, isInPeriod, type Period } from "@/lib/period";
+import {
+  PERIODS_WITH_YEAR,
+  formatPeriodLabel,
+  isInPeriodRange,
+  type Period,
+} from "@/lib/period";
 
 export interface BreakdownExpense {
   amountBase: number;
@@ -15,12 +19,12 @@ export interface BreakdownExpense {
   spentOn: string;
 }
 
-const PERIOD_LABEL: Record<Period, string> = {
-  day: "today",
-  week: "this week",
-  month: "this month",
-  year: "this year",
-};
+function spentLine(period: Period, referenceDate: Date) {
+  const label = formatPeriodLabel(period, referenceDate);
+  if (period === "day") return `Spent on ${label}`;
+  if (period === "week") return `Spent ${label}`;
+  return `Spent in ${label}`;
+}
 
 export function ExpensesBreakdown({
   expenses,
@@ -30,11 +34,13 @@ export function ExpensesBreakdown({
   baseCurrency: string;
 }) {
   const [period, setPeriod] = useState<Period>("month");
+  const [referenceDate, setReferenceDate] = useState(() => new Date());
   const symbol = currencySymbol(baseCurrency);
 
   const { total, rows } = useMemo(() => {
-    const now = new Date();
-    const filtered = expenses.filter((e) => isInPeriod(e.spentOn, period, now));
+    const filtered = expenses.filter((e) =>
+      isInPeriodRange(e.spentOn, period, referenceDate)
+    );
 
     const byCategory: Record<string, number> = {};
     for (const e of filtered) {
@@ -52,29 +58,19 @@ export function ExpensesBreakdown({
       .sort((a, b) => b.amount - a.amount);
 
     return { total, rows };
-  }, [expenses, period]);
+  }, [expenses, period, referenceDate]);
 
   return (
     <MagicCard className="relative overflow-hidden rounded-2xl p-6">
-      <div className="flex items-center justify-between gap-4">
-        <p className="text-muted-foreground text-sm">Spending breakdown</p>
-        <div className="bg-muted flex gap-0.5 rounded-full p-0.5">
-          {PERIODS_WITH_YEAR.map((p) => (
-            <Button
-              key={p.value}
-              size="sm"
-              variant="ghost"
-              onClick={() => setPeriod(p.value)}
-              className={cn(
-                "h-7 rounded-full px-3 text-xs",
-                period === p.value &&
-                  "bg-background shadow-sm hover:bg-background"
-              )}
-            >
-              {p.label}
-            </Button>
-          ))}
-        </div>
+      <p className="text-muted-foreground text-sm">Spending breakdown</p>
+      <div className="mt-2">
+        <PeriodPicker
+          period={period}
+          referenceDate={referenceDate}
+          onPeriodChange={setPeriod}
+          onReferenceDateChange={setReferenceDate}
+          periods={PERIODS_WITH_YEAR}
+        />
       </div>
 
       <div className="mt-2 flex items-baseline gap-1">
@@ -84,12 +80,12 @@ export function ExpensesBreakdown({
         </span>
       </div>
       <p className="text-muted-foreground mt-1 text-xs">
-        Spent {PERIOD_LABEL[period]}
+        {spentLine(period, referenceDate)}
       </p>
 
       {rows.length === 0 ? (
         <p className="text-muted-foreground mt-4 border-t pt-4 text-sm">
-          No expenses logged {PERIOD_LABEL[period]}.
+          No expenses logged {period === "day" ? "on" : "in"} this period.
         </p>
       ) : (
         <div className="mt-4 flex flex-col gap-4 border-t pt-4">

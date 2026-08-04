@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/select";
 import { IncomeRow } from "@/components/dashboard/income-row";
 import { IncomeDialog } from "@/components/dashboard/income-dialog";
-import { PERIODS_WITH_YEAR, isInPeriod, type Period } from "@/lib/period";
+import { PeriodNav } from "@/components/ui/period-picker";
+import { PERIODS_WITH_YEAR, isInPeriodRange, type Period } from "@/lib/period";
 import type { Income, Wallet } from "@/lib/types";
 
 const PERIOD_ITEMS: { value: Period | "all"; label: string }[] = [
@@ -32,12 +33,12 @@ export function IncomeClient({
     income?: Income;
   }>({ open: false });
   const [period, setPeriod] = useState<Period | "all">("all");
+  const [referenceDate, setReferenceDate] = useState(() => new Date());
 
   const visibleIncome = useMemo(() => {
     if (period === "all") return income;
-    const now = new Date();
-    return income.filter((i) => isInPeriod(i.received_on, period, now));
-  }, [income, period]);
+    return income.filter((i) => isInPeriodRange(i.received_on, period, referenceDate));
+  }, [income, period, referenceDate]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -56,22 +57,35 @@ export function IncomeClient({
       </div>
 
       {income.length > 0 && (
-        <Select
-          items={PERIOD_ITEMS}
-          value={period}
-          onValueChange={(v) => v && setPeriod(v as Period | "all")}
-        >
-          <SelectTrigger className="w-auto min-w-32 self-start">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {PERIOD_ITEMS.map((p) => (
-              <SelectItem key={p.value} value={p.value}>
-                {p.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            items={PERIOD_ITEMS}
+            value={period}
+            onValueChange={(v) => {
+              if (!v) return;
+              setPeriod(v as Period | "all");
+              setReferenceDate(new Date());
+            }}
+          >
+            <SelectTrigger className="w-auto min-w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PERIOD_ITEMS.map((p) => (
+                <SelectItem key={p.value} value={p.value}>
+                  {p.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {period !== "all" && (
+            <PeriodNav
+              period={period}
+              referenceDate={referenceDate}
+              onReferenceDateChange={setReferenceDate}
+            />
+          )}
+        </div>
       )}
 
       {income.length === 0 ? (
