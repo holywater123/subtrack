@@ -95,8 +95,15 @@ export function MagicCard(props: MagicCardProps) {
   const mouseX = useMotionValue(-gradientSize)
   const mouseY = useMotionValue(-gradientSize)
 
-  const orbX = useSpring(mouseX, { stiffness: 250, damping: 30, mass: 0.6 })
-  const orbY = useSpring(mouseY, { stiffness: 250, damping: 30, mass: 0.6 })
+  // The orb tracks its own copy of the pointer position, separate from
+  // mouseX/mouseY (which drive the border gradient and reset to
+  // off-screen on leave) - otherwise resetting the border on leave also
+  // yanks the orb's spring target off-screen, visibly flinging the blob
+  // toward the corner instead of just fading out where it already was.
+  const orbMouseX = useMotionValue(-gradientSize)
+  const orbMouseY = useMotionValue(-gradientSize)
+  const orbX = useSpring(orbMouseX, { stiffness: 250, damping: 30, mass: 0.6 })
+  const orbY = useSpring(orbMouseY, { stiffness: 250, damping: 30, mass: 0.6 })
   const orbVisible = useSpring(0, { stiffness: 300, damping: 35 })
 
   const modeRef = useRef(mode)
@@ -137,10 +144,14 @@ export function MagicCard(props: MagicCardProps) {
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       const rect = e.currentTarget.getBoundingClientRect()
-      mouseX.set(e.clientX - rect.left)
-      mouseY.set(e.clientY - rect.top)
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
+      mouseX.set(x)
+      mouseY.set(y)
+      orbMouseX.set(x)
+      orbMouseY.set(y)
     },
-    [mouseX, mouseY]
+    [mouseX, mouseY, orbMouseX, orbMouseY]
   )
 
   useEffect(() => {
