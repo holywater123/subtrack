@@ -8,6 +8,7 @@ import { WalletCard } from "@/components/dashboard/wallet-card";
 import { WalletDialog } from "@/components/dashboard/wallet-dialog";
 import { WalletTransferDialog } from "@/components/dashboard/wallet-transfer-dialog";
 import { WalletTransferRow } from "@/components/dashboard/wallet-transfer-row";
+import { BalanceTransferRow } from "@/components/dashboard/balance-transfer-row";
 import {
   WalletsBreakdown,
   type WalletTypeBreakdownRow,
@@ -16,11 +17,12 @@ import {
   CreditSummaryCard,
   type CreditSummaryRow,
 } from "@/components/dashboard/credit-summary-card";
-import type { Wallet, WalletTransfer } from "@/lib/types";
+import type { BalanceTransfer, Wallet, WalletTransfer } from "@/lib/types";
 
 export function WalletsClient({
   walletRows,
   transfers,
+  balanceTransfers,
   unassignedTotal,
   totalCashOnHand,
   typeBreakdown,
@@ -29,6 +31,7 @@ export function WalletsClient({
 }: {
   walletRows: { wallet: Wallet; balance: number }[];
   transfers: WalletTransfer[];
+  balanceTransfers: BalanceTransfer[];
   unassignedTotal: number;
   totalCashOnHand: number;
   typeBreakdown: WalletTypeBreakdownRow[];
@@ -138,6 +141,23 @@ export function WalletsClient({
         wallets={wallets}
         onOpenChange={setTransferDialogOpen}
       />
+
+      {balanceTransfers.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <h2 className="text-muted-foreground text-sm font-medium">
+            Balance transfers
+          </h2>
+          <div className="flex flex-col gap-3">
+            {balanceTransfers.map((transfer) => (
+              <BalanceTransferRow
+                key={transfer.id}
+                transfer={transfer}
+                wallets={wallets}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {transfers.length > 0 && (
         <div className="flex flex-col gap-3">

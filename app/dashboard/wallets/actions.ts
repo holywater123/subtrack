@@ -315,3 +315,169 @@ export async function deleteWallet(id: string): Promise<ActionResult> {
   revalidateAll();
   return { success: true };
 }
+
+// Converting moves an amount OUT of the card's revolving outstanding_balance
+// INTO a fixed-term installment plan - net available credit is unchanged at
+// the moment of conversion (same debt, different terms), it only frees up as
+// installments get paid down.
+export async function createBalanceTransfer(
+  walletId: string,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not signed in." };
+
+  const amount = Number(formData.get("amount"));
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { error: "Enter a valid amount." };
+  }
+
+  const termMonths = Number(formData.get("termMonths"));
+  if (!Number.isInteger(termMonths) || termMonths <= 0) {
+    return { error: "Enter a valid term in months." };
+  }
+
+  const totalInterestRaw = String(formData.get("totalInterest") ?? "").trim();
+  let totalInterest = 0;
+  if (totalInterestRaw) {
+    totalInterest = Number(totalInterestRaw);
+    if (!Number.isFinite(totalInterest) || totalInterest < 0) {
+      return { error: "Enter a valid interest amount." };
+    }
+  }
+
+  const name = String(formData.get("name") ?? "").trim();
+
+  const { data: wallet, error: fetchError } = await supabase
+    .from("wallets")
+    .select("wallet_type, outstanding_balance, currency")
+    .eq("id", walletId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (fetchError || !wallet) return { error: "Wallet not found." };
+  if (!isCreditWallet(wallet.wallet_type)) {
+    return { error: "Only credit card or Pay Later wallets support balance transfers." };
+  }
+
+  const outstanding = Number(wallet.outstanding_balance ?? 0);
+  if (amount > outstanding) {
+    return { error: "Amount can't exceed the outstanding balance." };
+  }
+
+  const { error: updateError } = await supabase
+    .from("wallets")
+    .update({ outstanding_balance: outstanding - amount })
+    .eq("id", walletId)
+    .eq("user_id", user.id);
+
+  if (updateError) return { error: updateError.message };
+
+  const { error: insertError } = await supabase.from("balance_transfers").insert({
+    user_id: user.id,
+    wallet_id: walletId,
+    name: name || null,
+    currency: wallet.currency,
+    original_amount: amount,
+    total_interest: totalInterest,
+    term_months: termMonths,
+    remaining_balance: amount + totalInterest,
+  });
+
+  if (insertError) return { error: insertError.message };
+
+  revalidateAll();
+  return { success: true };
+}
+
+// Only the interest portion of an installment is logged as a real expense -
+// same reasoning as payDebt: the rest just cancels debt already reflected in
+// whatever was originally charged to the card, so logging it again would
+// double-count. Interest is the plan's fixed total_interest/term_months
+// share, capped at whatever the payment actually covers.
+export async function payInstallment(
+  transferId: string,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not signed in." };
+
+  const amount = Number(formData.get("amount"));
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { error: "Enter a valid payment amount." };
+  }
+
+  const { data: transfer, error: fetchError } = await supabase
+    .from("balance_transfers")
+    .select(
+      "name, currency, remaining_balance, total_interest, term_months, installments_paid"
+    )
+    .eq("id", transferId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (fetchError || !transfer) return { error: "Balance transfer not found." };
+
+  const remainingBalance = Number(transfer.remaining_balance);
+  if (amount > remainingBalance) {
+    return { error: "Payment can't exceed the remaining balance." };
+  }
+
+  const interestPerInstallment =
+    transfer.term_months > 0 ? Number(transfer.total_interest) / transfer.term_months : 0;
+  const interestPortion = Math.min(interestPerInstallment, amount);
+  const newRemaining = Math.max(0, remainingBalance - amount);
+
+  const { error: updateError } = await supabase
+    .from("balance_transfers")
+    .update({
+      remaining_balance: newRemaining,
+      installments_paid: transfer.installments_paid + 1,
+    })
+    .eq("id", transferId)
+    .eq("user_id", user.id);
+
+  if (updateError) return { error: updateError.message };
+
+  if (interestPortion > 0) {
+    const { error: expenseError } = await supabase.from("expenses").insert({
+      user_id: user.id,
+      amount: interestPortion,
+      currency: transfer.currency,
+      category: "finance",
+      spent_on: new Date().toISOString().slice(0, 10),
+      note: `Interest on ${transfer.name ?? "balance transfer"}`,
+      balance_transfer_id: transferId,
+    });
+    if (expenseError) return { error: expenseError.message };
+  }
+
+  revalidateAll();
+  revalidatePath("/dashboard/expenses");
+  return { success: true };
+}
+
+export async function deleteBalanceTransfer(id: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not signed in." };
+
+  const { error } = await supabase
+    .from("balance_transfers")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) return { error: error.message };
+
+  revalidateAll();
+  return { success: true };
+}

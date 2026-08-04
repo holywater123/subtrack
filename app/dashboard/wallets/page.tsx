@@ -138,6 +138,7 @@ export default async function WalletsPage() {
     <WalletsClient
       walletRows={walletRows.map(({ wallet, balance }) => ({ wallet, balance }))}
       transfers={transfers}
+      balanceTransfers={balanceTransfers}
       unassignedTotal={unassignedTotal}
       totalCashOnHand={totalCashOnHand}
       typeBreakdown={typeBreakdown}

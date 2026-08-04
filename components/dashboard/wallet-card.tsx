@@ -1,10 +1,11 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Pencil, Star, Trash2 } from "lucide-react";
+import { Pencil, Repeat, Star, Trash2 } from "lucide-react";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Button } from "@/components/ui/button";
+import { BalanceTransferDialog } from "@/components/dashboard/balance-transfer-dialog";
 import type { Wallet } from "@/lib/types";
 import { currencySymbol } from "@/lib/currencies";
 import { getWalletType, isCreditWallet } from "@/lib/wallet-types";
@@ -25,6 +26,7 @@ export function WalletCard({
 }) {
   const [isPending, startTransition] = useTransition();
   const [isTogglingPool, startTogglingPool] = useTransition();
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const walletType = getWalletType(wallet.wallet_type);
   const Icon = walletType.icon;
   const symbol = currencySymbol(wallet.currency);
@@ -116,7 +118,18 @@ export function WalletCard({
         )}
       </div>
 
-      <div className="flex shrink-0 justify-end gap-0.5">
+      <div className="flex shrink-0 items-center justify-end gap-0.5">
+        {isCredit && outstanding > 0 && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7"
+            onClick={() => setTransferDialogOpen(true)}
+            aria-label="Convert to balance transfer"
+          >
+            <Repeat className="size-3.5" />
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon"
@@ -137,6 +150,14 @@ export function WalletCard({
           <Trash2 className="size-3.5" />
         </Button>
       </div>
+
+      {isCredit && (
+        <BalanceTransferDialog
+          open={transferDialogOpen}
+          wallet={wallet}
+          onOpenChange={setTransferDialogOpen}
+        />
+      )}
     </MagicCard>
   );
 }
