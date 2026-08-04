@@ -28,7 +28,7 @@ function startOfDay(d: Date) {
 
 const cellClass = (disabled: boolean, selected: boolean, extra?: string) =>
   cn(
-    "rounded-md text-sm transition-colors",
+    "rounded-lg text-sm transition-colors",
     disabled
       ? "text-muted-foreground/40 cursor-not-allowed"
       : "hover:bg-accent",
@@ -198,7 +198,7 @@ export function Calendar({
       </div>
       <div className="grid grid-cols-7 text-center">
         {WEEKDAY_HEADERS.map((d) => (
-          <span key={d} className="text-muted-foreground text-[11px] font-medium">
+          <span key={d} className="text-muted-foreground text-xs font-medium">
             {d}
           </span>
         ))}
@@ -231,7 +231,7 @@ export function Calendar({
                     disabled={disabled}
                     onClick={() => onSelect(d)}
                     className={cn(
-                      "mx-auto size-8 rounded-md text-sm transition-colors",
+                      "mx-auto size-8 rounded-lg text-sm transition-colors",
                       disabled
                         ? "text-muted-foreground/40 cursor-not-allowed"
                         : period === "week"

@@ -5,6 +5,7 @@ import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { MagicCard } from "@/components/ui/magic-card";
 import { cn } from "@/lib/utils";
 import {
   formatPeriodLabel,
@@ -56,15 +57,21 @@ export function PeriodNav({
           <CalendarDays className="size-3.5" />
           {formatPeriodLabel(period, referenceDate)}
         </PopoverTrigger>
-        <PopoverContent align="center">
-          <Calendar
-            period={period}
-            selected={referenceDate}
-            onSelect={(date) => {
-              onReferenceDateChange(date);
-              setCalendarOpen(false);
-            }}
-          />
+        <PopoverContent align="center" className="rounded-2xl bg-transparent p-0 ring-0">
+          {/* Same MagicCard treatment (gradient border, bg-background fill,
+              rounded-2xl) as every card on Overview, instead of the flat
+              generic popover surface - keeps the date picker visually part
+              of the same card family it lives alongside. */}
+          <MagicCard className="rounded-2xl p-4">
+            <Calendar
+              period={period}
+              selected={referenceDate}
+              onSelect={(date) => {
+                onReferenceDateChange(date);
+                setCalendarOpen(false);
+              }}
+            />
+          </MagicCard>
         </PopoverContent>
       </Popover>
 
