@@ -9,9 +9,11 @@ import {
   CHART_SEQUENTIAL,
 } from "@/lib/chart-colors";
 
-export interface DailyAmount {
-  day: number;
+export interface TrendBar {
+  key: string;
+  label: string;
   amount: number;
+  tooltipLabel: string;
 }
 
 function niceCeiling(value: number) {
@@ -28,14 +30,17 @@ function formatTick(value: number) {
   return Math.round(value).toString();
 }
 
-// Trend-over-time job -> line/bar with a single sequential hue, not
-// categorical - there's only one series here.
-export function DailyTrendChart({
+// A single sequential hue bar chart, generic over whatever bucket a caller
+// wants (days, months, ...) - trend-over-time is a magnitude job, not
+// identity, so one hue throughout regardless of bucket count.
+export function TrendBarChart({
   data,
   symbol,
+  sparseLabels = false,
 }: {
-  data: DailyAmount[];
+  data: TrendBar[];
   symbol: string;
+  sparseLabels?: boolean;
 }) {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -63,7 +68,14 @@ export function DailyTrendChart({
   const niceMax = niceCeiling(maxAmount);
   const yTicks = [0, niceMax / 2, niceMax];
   const barWidth = plotWidth / data.length;
-  const lastDay = data[data.length - 1].day;
+
+  const labeledIndexes = sparseLabels
+    ? new Set(
+        data
+          .map((_, i) => i)
+          .filter((i) => i === 0 || i === data.length - 1 || i % 5 === 0)
+      )
+    : new Set(data.map((_, i) => i));
 
   return (
     <div>
@@ -71,7 +83,7 @@ export function DailyTrendChart({
         viewBox={`0 0 ${width} ${height}`}
         className="w-full"
         role="img"
-        aria-label={`Daily spending this month, up to day ${lastDay}, peak ${symbol}${maxAmount.toFixed(2)}`}
+        aria-label={`Spending trend, peak ${symbol}${maxAmount.toFixed(2)}`}
       >
         {yTicks.map((tick) => {
           const y = paddingTop + plotHeight - (tick / niceMax) * plotHeight;
@@ -114,7 +126,7 @@ export function DailyTrendChart({
           const isHovered = hovered === i;
           return (
             <rect
-              key={d.day}
+              key={d.key}
               x={x + barWidth * 0.15}
               y={y}
               width={Math.max(1, barWidth * 0.7)}
@@ -128,37 +140,33 @@ export function DailyTrendChart({
               onFocus={() => setHovered(i)}
               onBlur={() => setHovered(null)}
             >
-              <title>{`Day ${d.day}: ${symbol}${d.amount.toFixed(2)}`}</title>
+              <title>{`${d.tooltipLabel}: ${symbol}${d.amount.toFixed(2)}`}</title>
             </rect>
           );
         })}
 
-        {data
-          .filter(
-            (d) => d.day === 1 || d.day % 5 === 0 || d.day === lastDay
-          )
-          .map((d) => {
-            const i = data.findIndex((x) => x.day === d.day);
-            const x = paddingLeft + i * barWidth + barWidth / 2;
-            return (
-              <text
-                key={d.day}
-                x={x}
-                y={height - 4}
-                textAnchor="middle"
-                fontSize={9}
-                fill={CHART_MUTED_TEXT}
-              >
-                {d.day}
-              </text>
-            );
-          })}
+        {data.map((d, i) => {
+          if (!labeledIndexes.has(i)) return null;
+          const x = paddingLeft + i * barWidth + barWidth / 2;
+          return (
+            <text
+              key={d.key}
+              x={x}
+              y={height - 4}
+              textAnchor="middle"
+              fontSize={9}
+              fill={CHART_MUTED_TEXT}
+            >
+              {d.label}
+            </text>
+          );
+        })}
       </svg>
 
       <p className="text-muted-foreground mt-1 text-center text-xs">
         {hovered !== null ? (
           <>
-            Day {data[hovered].day}:{" "}
+            {data[hovered].tooltipLabel}:{" "}
             <span className="text-foreground font-medium">
               {symbol}
               {data[hovered].amount.toFixed(2)}

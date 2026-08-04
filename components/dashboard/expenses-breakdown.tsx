@@ -7,7 +7,7 @@ import { CategoryBarChart } from "@/components/ui/category-bar-chart";
 import { currencySymbol } from "@/lib/currencies";
 import { getCategory } from "@/lib/categories";
 import { cn } from "@/lib/utils";
-import { PERIODS, isInPeriod, type Period } from "@/lib/period";
+import { PERIODS_WITH_YEAR, isInPeriod, type Period } from "@/lib/period";
 
 export interface BreakdownExpense {
   amountBase: number;
@@ -19,6 +19,7 @@ const PERIOD_LABEL: Record<Period, string> = {
   day: "today",
   week: "this week",
   month: "this month",
+  year: "this year",
 };
 
 export function ExpensesBreakdown({
@@ -58,7 +59,7 @@ export function ExpensesBreakdown({
       <div className="flex items-center justify-between gap-4">
         <p className="text-muted-foreground text-sm">Spending breakdown</p>
         <div className="bg-muted flex gap-0.5 rounded-full p-0.5">
-          {PERIODS.map((p) => (
+          {PERIODS_WITH_YEAR.map((p) => (
             <Button
               key={p.value}
               size="sm"

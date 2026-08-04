@@ -10,8 +10,10 @@ import { PeriodEstimateCard } from "@/components/dashboard/period-estimate-card"
 import { TotalSpendCard } from "@/components/dashboard/total-spend-card";
 import { AiInsightCard } from "@/components/dashboard/ai-insight-card";
 import { BudgetProgress } from "@/components/dashboard/budget-progress";
-import { SpendingTrendCard } from "@/components/dashboard/spending-trend-card";
-import type { DailyAmount } from "@/components/ui/daily-trend-chart";
+import {
+  SpendingTrendCard,
+  type TrendExpense,
+} from "@/components/dashboard/spending-trend-card";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Button } from "@/components/ui/button";
 import { currencySymbol } from "@/lib/currencies";
@@ -22,6 +24,17 @@ function currentMonthRange() {
   const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const toISODate = (d: Date) => d.toISOString().slice(0, 10);
   return { start: toISODate(start), end: toISODate(end) };
+}
+
+// Covers everything the Spending trend card's week/month/year tabs need in
+// one query - back to the start of the current year, plus a week of buffer
+// so an early-January "week" view (which can dip into December) still has
+// data.
+function trendRangeStart() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 1);
+  start.setDate(start.getDate() - 7);
+  return start.toISOString().slice(0, 10);
 }
 
 export default async function OverviewPage() {
@@ -37,6 +50,7 @@ export default async function OverviewPage() {
     { data: budgetsData },
     { data: incomeData },
     { data: settingsData },
+    { data: trendExpensesData },
     rates,
   ] = await Promise.all([
     getFinanceSummary(),
@@ -52,6 +66,10 @@ export default async function OverviewPage() {
       .select("overview_layout")
       .eq("user_id", user!.id)
       .maybeSingle(),
+    supabase
+      .from("expenses")
+      .select("amount, currency, spent_on")
+      .gte("spent_on", trendRangeStart()),
     getExchangeRates(BASE_CURRENCY),
   ]);
 
@@ -77,19 +95,10 @@ export default async function OverviewPage() {
     budget: budgetByCategory[c.value],
   }));
 
-  const dayOfMonth = new Date().getDate();
-  const dailyTotals = new Map<number, number>();
-  for (let d = 1; d <= dayOfMonth; d++) dailyTotals.set(d, 0);
-  for (const e of expensesThisMonth) {
-    const day = Number(e.spentOn.slice(8, 10));
-    if (dailyTotals.has(day)) {
-      dailyTotals.set(day, (dailyTotals.get(day) ?? 0) + e.amountBase);
-    }
-  }
-  const dailySpending: DailyAmount[] = Array.from(
-    dailyTotals.entries(),
-    ([day, amount]) => ({ day, amount })
-  ).sort((a, b) => a.day - b.day);
+  const trendExpenses: TrendExpense[] = (trendExpensesData ?? []).map((e) => ({
+    amountBase: convertToBase(e.amount, e.currency, rates),
+    spentOn: e.spent_on,
+  }));
 
   const sections: Record<OverviewSectionId, React.ReactNode> = {
     estimate: (
@@ -99,7 +108,7 @@ export default async function OverviewPage() {
         baseCurrency={BASE_CURRENCY}
       />
     ),
-    trend: <SpendingTrendCard data={dailySpending} baseCurrency={BASE_CURRENCY} />,
+    trend: <SpendingTrendCard expenses={trendExpenses} baseCurrency={BASE_CURRENCY} />,
     income: (
       <TotalSpendCard
         label="Income this month"
