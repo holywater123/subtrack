@@ -182,6 +182,7 @@ create table user_settings (
   full_name text,
   birthdate date,
   goal text,
+  overview_layout jsonb,
   updated_at timestamptz not null default now()
 );
 

@@ -1,13 +1,17 @@
+import Link from "next/link";
+import { SlidersHorizontal } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getFinanceSummary, BASE_CURRENCY } from "@/lib/finance-summary";
 import { getExchangeRates, convertToBase } from "@/lib/exchange-rates";
 import { getSpendingInsight } from "@/lib/ai-insight";
 import { CATEGORIES } from "@/lib/categories";
+import { normalizeOverviewLayout, type OverviewSectionId } from "@/lib/overview-layout";
 import { PeriodEstimateCard } from "@/components/dashboard/period-estimate-card";
 import { TotalSpendCard } from "@/components/dashboard/total-spend-card";
 import { AiInsightCard } from "@/components/dashboard/ai-insight-card";
 import { BudgetProgress } from "@/components/dashboard/budget-progress";
 import { MagicCard } from "@/components/ui/magic-card";
+import { Button } from "@/components/ui/button";
 import { currencySymbol } from "@/lib/currencies";
 
 function currentMonthRange() {
@@ -21,19 +25,33 @@ function currentMonthRange() {
 export default async function OverviewPage() {
   const supabase = await createClient();
   const { start, end } = currentMonthRange();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const [financeSummary, insight, { data: budgetsData }, { data: incomeData }, rates] =
-    await Promise.all([
-      getFinanceSummary(),
-      getSpendingInsight(),
-      supabase.from("budgets").select("category, monthly_amount"),
-      supabase
-        .from("income")
-        .select("amount, currency")
-        .gte("received_on", start)
-        .lt("received_on", end),
-      getExchangeRates(BASE_CURRENCY),
-    ]);
+  const [
+    financeSummary,
+    insight,
+    { data: budgetsData },
+    { data: incomeData },
+    { data: settingsData },
+    rates,
+  ] = await Promise.all([
+    getFinanceSummary(),
+    getSpendingInsight(),
+    supabase.from("budgets").select("category, monthly_amount"),
+    supabase
+      .from("income")
+      .select("amount, currency")
+      .gte("received_on", start)
+      .lt("received_on", end),
+    supabase
+      .from("user_settings")
+      .select("overview_layout")
+      .eq("user_id", user!.id)
+      .maybeSingle(),
+    getExchangeRates(BASE_CURRENCY),
+  ]);
 
   const { totalSubscriptionsMonthly, spendByCategory, expensesThisMonth } =
     financeSummary;
@@ -57,23 +75,24 @@ export default async function OverviewPage() {
     budget: budgetByCategory[c.value],
   }));
 
-  return (
-    <div className="flex flex-col gap-6">
+  const sections: Record<OverviewSectionId, React.ReactNode> = {
+    estimate: (
       <PeriodEstimateCard
         subscriptionsMonthly={totalSubscriptionsMonthly}
         expenses={expensesThisMonth}
         baseCurrency={BASE_CURRENCY}
       />
-
+    ),
+    income: (
       <TotalSpendCard
         label="Income this month"
         totalMonthly={totalIncomeThisMonth}
         subtitle={`Net ${net >= 0 ? "+" : "-"}${currencySymbol(BASE_CURRENCY)}${Math.abs(net).toFixed(2)} after ${currencySymbol(BASE_CURRENCY)}${financeSummary.totalExpensesThisMonth.toFixed(2)} in subscriptions + expenses`}
         baseCurrency={BASE_CURRENCY}
       />
-
-      <AiInsightCard insight={insight} />
-
+    ),
+    insight: <AiInsightCard insight={insight} />,
+    budgets: (
       <div>
         <h2 className="text-muted-foreground mb-3 text-sm font-medium">
           Budgets
@@ -99,6 +118,26 @@ export default async function OverviewPage() {
           </div>
         )}
       </div>
+    ),
+  };
+
+  const layout = normalizeOverviewLayout(settingsData?.overview_layout);
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex justify-end">
+        <Link href="/dashboard/customize">
+          <Button variant="ghost" size="icon" aria-label="Customize Overview">
+            <SlidersHorizontal className="size-4" />
+          </Button>
+        </Link>
+      </div>
+
+      {layout
+        .filter((section) => section.visible)
+        .map((section) => (
+          <div key={section.id}>{sections[section.id]}</div>
+        ))}
     </div>
   );
 }
