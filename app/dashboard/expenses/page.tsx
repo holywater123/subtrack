@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { cleanupExpiredReceipts } from "@/lib/receipt-cleanup";
+import { syncSubscriptionBilling } from "@/lib/subscription-billing";
 import { getExchangeRates, convertToBase } from "@/lib/exchange-rates";
 import { BASE_CURRENCY } from "@/lib/finance-summary";
 import { ExpensesClient } from "@/components/dashboard/expenses-client";
@@ -8,7 +9,11 @@ import type { Expense, Wallet } from "@/lib/types";
 export default async function ExpensesPage() {
   const supabase = await createClient();
 
-  await cleanupExpiredReceipts();
+  // This page reads expenses directly, not through getFinanceSummary(), so
+  // it needs its own sync call to stay correct if it's the first page a
+  // user visits in a session - otherwise a subscription billed today
+  // wouldn't show up here until they'd visited Overview or Subscriptions.
+  await Promise.all([cleanupExpiredReceipts(), syncSubscriptionBilling()]);
 
   const [{ data: expenses }, { data: wallets }, rates] = await Promise.all([
     supabase

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { SlidersHorizontal } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getFinanceSummary, BASE_CURRENCY } from "@/lib/finance-summary";
+import { syncSubscriptionBilling } from "@/lib/subscription-billing";
 import { getExchangeRates, convertToBase } from "@/lib/exchange-rates";
 import { getSpendingInsight } from "@/lib/ai-insight";
 import { CATEGORIES } from "@/lib/categories";
@@ -22,6 +23,17 @@ export default async function OverviewPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Must finish before the expenses query below starts, not just before
+  // getFinanceSummary()'s own internal one - getFinanceSummary() awaits
+  // this same sync internally, but that's a separate call, and this
+  // page's own all-time expenses query below runs concurrently with it in
+  // the Promise.all. Without awaiting it out here first, the two can race:
+  // the query below can read before a just-inserted subscription expense
+  // (dated today) commits, so today's actual spend silently doesn't
+  // include a subscription that was due today. This second call is then
+  // a cheap no-op for getFinanceSummary() (nothing left to sync).
+  await syncSubscriptionBilling();
 
   const [
     financeSummary,
