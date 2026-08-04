@@ -59,7 +59,21 @@ export async function sendChatMessage(formData: FormData): Promise<SendResult> {
       buildFinanceSnapshot(),
     ]);
 
-    const history = (historyData ?? []).reverse();
+    const rawHistory = (historyData ?? []).reverse();
+    // Defensive: if a previous send failed after the user's message was
+    // saved but before the assistant's reply came back (network error,
+    // timeout, bad model, etc.), chat_messages can end up with two
+    // consecutive "user" rows. Anthropic's API requires strict user/
+    // assistant alternation, so collapse any same-role run down to its
+    // last entry before building the request.
+    const history: typeof rawHistory = [];
+    for (const m of rawHistory) {
+      if (history.length > 0 && history[history.length - 1].role === m.role) {
+        history[history.length - 1] = m;
+      } else {
+        history.push(m);
+      }
+    }
 
     const messages = [
       {

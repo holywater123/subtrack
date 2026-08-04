@@ -67,6 +67,17 @@ function TransferForm({
   const [isPending, startTransition] = useTransition();
 
   const walletItems = wallets.map((w) => ({ value: w.id, label: w.name }));
+  // "To" can never be the same wallet as "From" - exclude it outright
+  // instead of only catching the mistake after submit.
+  const toWalletItems = walletItems.filter((w) => w.value !== fromWalletId);
+
+  function handleFromChange(value: string) {
+    setFromWalletId(value);
+    if (value === toWalletId) {
+      const next = walletItems.find((w) => w.value !== value);
+      if (next) setToWalletId(next.value);
+    }
+  }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -102,7 +113,7 @@ function TransferForm({
             <Select
               items={walletItems}
               value={fromWalletId}
-              onValueChange={(v) => v && setFromWalletId(v)}
+              onValueChange={(v) => v && handleFromChange(v)}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -119,7 +130,7 @@ function TransferForm({
           <div className="flex flex-col gap-2">
             <Label>To</Label>
             <Select
-              items={walletItems}
+              items={toWalletItems}
               value={toWalletId}
               onValueChange={(v) => v && setToWalletId(v)}
             >
@@ -127,7 +138,7 @@ function TransferForm({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {walletItems.map((w) => (
+                {toWalletItems.map((w) => (
                   <SelectItem key={w.value} value={w.value}>
                     {w.label}
                   </SelectItem>
