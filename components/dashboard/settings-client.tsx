@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { updateProfile } from "@/app/dashboard/settings/actions";
 import { signOut } from "@/app/dashboard/actions";
+import { InstallAppButton } from "@/components/install-app-button";
 
 function calculateAge(birthdate: string): number | null {
   if (!birthdate) return null;
@@ -65,7 +66,7 @@ export function SettingsClient({
         <h2 className="font-medium">Profile</h2>
         <p className="text-muted-foreground mt-1 text-sm">
           Personalizes your greeting and helps keep you focused on what
-          you're working toward.
+          you&apos;re working toward.
         </p>
         <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
           <div className="flex flex-col gap-2">
@@ -104,6 +105,18 @@ export function SettingsClient({
             </Button>
           </div>
         </form>
+      </MagicCard>
+
+      <MagicCard className="rounded-2xl p-6">
+        <h2 className="font-medium">App</h2>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Install Gauge on your device for quicker access. On iPhone, use
+          Safari&apos;s Share button and tap &ldquo;Add to Home Screen&rdquo;
+          instead.
+        </p>
+        <div className="mt-4">
+          <InstallAppButton />
+        </div>
       </MagicCard>
 
       <MagicCard className="rounded-2xl p-6">
