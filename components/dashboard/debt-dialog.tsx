@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import type { Debt } from "@/lib/types";
 import { CURRENCY_ITEMS } from "@/lib/currencies";
-import { DEBT_TYPES } from "@/lib/debt-types";
+import { ADDABLE_DEBT_TYPES, getDebtType } from "@/lib/debt-types";
 import { addDebt, updateDebt } from "@/app/dashboard/debts/actions";
 
 export function DebtDialog({
@@ -51,7 +51,13 @@ export function DebtDialog({
 function DebtForm({ debt, onDone }: { debt?: Debt; onDone: () => void }) {
   const isEditing = Boolean(debt);
   const [name, setName] = useState(debt?.name ?? "");
-  const [debtType, setDebtType] = useState(debt?.debt_type ?? "credit_card");
+  const [debtType, setDebtType] = useState(debt?.debt_type ?? "personal_loan");
+  // Credit Card / BNPL aren't offered for a new debt anymore, but editing
+  // an existing one of those types shouldn't make the label disappear.
+  const debtTypeOptions =
+    debt && !ADDABLE_DEBT_TYPES.some((d) => d.value === debt.debt_type)
+      ? [...ADDABLE_DEBT_TYPES, getDebtType(debt.debt_type)]
+      : ADDABLE_DEBT_TYPES;
   const [balance, setBalance] = useState(debt ? String(debt.balance) : "");
   const [currency, setCurrency] = useState(debt?.currency ?? "MYR");
   const [interestRate, setInterestRate] = useState(
@@ -105,7 +111,7 @@ function DebtForm({ debt, onDone }: { debt?: Debt; onDone: () => void }) {
         <div className="flex flex-col gap-2">
           <Label>Type</Label>
           <Select
-            items={DEBT_TYPES}
+            items={debtTypeOptions}
             value={debtType}
             onValueChange={(v) => v && setDebtType(v)}
           >
@@ -113,7 +119,7 @@ function DebtForm({ debt, onDone }: { debt?: Debt; onDone: () => void }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {DEBT_TYPES.map((d) => (
+              {debtTypeOptions.map((d) => (
                 <SelectItem key={d.value} value={d.value}>
                   {d.label}
                 </SelectItem>

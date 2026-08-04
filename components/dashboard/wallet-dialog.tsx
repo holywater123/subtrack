@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import type { Wallet } from "@/lib/types";
 import { CURRENCY_ITEMS } from "@/lib/currencies";
-import { WALLET_TYPES } from "@/lib/wallet-types";
+import { WALLET_TYPES, isCreditWallet } from "@/lib/wallet-types";
 import { addWallet, updateWallet } from "@/app/dashboard/wallets/actions";
 
 export function WalletDialog({
@@ -63,7 +63,28 @@ function WalletForm({
     wallet ? String(wallet.starting_balance) : "0"
   );
   const [description, setDescription] = useState(wallet?.description ?? "");
+  const [statementBalance, setStatementBalance] = useState(
+    wallet?.statement_balance !== null && wallet?.statement_balance !== undefined
+      ? String(wallet.statement_balance)
+      : ""
+  );
+  const [outstandingBalance, setOutstandingBalance] = useState(
+    wallet?.outstanding_balance !== null && wallet?.outstanding_balance !== undefined
+      ? String(wallet.outstanding_balance)
+      : ""
+  );
+  const [creditLimit, setCreditLimit] = useState(
+    wallet?.credit_limit !== null && wallet?.credit_limit !== undefined
+      ? String(wallet.credit_limit)
+      : ""
+  );
+  const [paymentDueDay, setPaymentDueDay] = useState(
+    wallet?.payment_due_day !== null && wallet?.payment_due_day !== undefined
+      ? String(wallet.payment_due_day)
+      : ""
+  );
   const [isPending, startTransition] = useTransition();
+  const isCredit = isCreditWallet(walletType);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -71,8 +92,12 @@ function WalletForm({
     formData.set("name", name);
     formData.set("walletType", walletType);
     formData.set("currency", currency);
-    formData.set("startingBalance", startingBalance);
     formData.set("description", description);
+    formData.set("startingBalance", isCredit ? "0" : startingBalance);
+    formData.set("statementBalance", isCredit ? statementBalance : "");
+    formData.set("outstandingBalance", isCredit ? outstandingBalance : "");
+    formData.set("creditLimit", isCredit ? creditLimit : "");
+    formData.set("paymentDueDay", isCredit ? paymentDueDay : "");
 
     startTransition(async () => {
       const result = wallet
@@ -144,17 +169,79 @@ function WalletForm({
             </Select>
           </div>
         </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="startingBalance">Starting balance</Label>
-          <Input
-            id="startingBalance"
-            type="number"
-            step="0.01"
-            value={startingBalance}
-            onChange={(e) => setStartingBalance(e.target.value)}
-            required
-          />
-        </div>
+
+        {isCredit ? (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="statementBalance">Statement balance</Label>
+                <Input
+                  id="statementBalance"
+                  type="number"
+                  step="0.01"
+                  value={statementBalance}
+                  onChange={(e) => setStatementBalance(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="outstandingBalance">Outstanding balance</Label>
+                <Input
+                  id="outstandingBalance"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={outstandingBalance}
+                  onChange={(e) => setOutstandingBalance(e.target.value)}
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="creditLimit">Combined credit limit</Label>
+                <Input
+                  id="creditLimit"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={creditLimit}
+                  onChange={(e) => setCreditLimit(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="paymentDueDay">Payment due date</Label>
+                <Input
+                  id="paymentDueDay"
+                  type="number"
+                  min="1"
+                  max="31"
+                  value={paymentDueDay}
+                  onChange={(e) => setPaymentDueDay(e.target.value)}
+                  placeholder="e.g. 15"
+                />
+              </div>
+            </div>
+            <p className="text-muted-foreground -mt-2 text-xs">
+              Day of the month payment is due, every month.
+            </p>
+          </>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="startingBalance">Starting balance</Label>
+            <Input
+              id="startingBalance"
+              type="number"
+              step="0.01"
+              value={startingBalance}
+              onChange={(e) => setStartingBalance(e.target.value)}
+              required
+            />
+          </div>
+        )}
+
         <div className="flex flex-col gap-2">
           <Label htmlFor="description">Description (optional)</Label>
           <Input

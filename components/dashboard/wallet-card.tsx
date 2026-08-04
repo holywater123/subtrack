@@ -7,7 +7,7 @@ import { MagicCard } from "@/components/ui/magic-card";
 import { Button } from "@/components/ui/button";
 import type { Wallet } from "@/lib/types";
 import { currencySymbol } from "@/lib/currencies";
-import { getWalletType } from "@/lib/wallet-types";
+import { getWalletType, isCreditWallet } from "@/lib/wallet-types";
 import { cn } from "@/lib/utils";
 import {
   deleteWallet,
@@ -28,6 +28,8 @@ export function WalletCard({
   const walletType = getWalletType(wallet.wallet_type);
   const Icon = walletType.icon;
   const symbol = currencySymbol(wallet.currency);
+  const isCredit = isCreditWallet(wallet.wallet_type);
+  const outstanding = wallet.outstanding_balance ?? 0;
 
   function handleDelete() {
     startTransition(async () => {
@@ -60,23 +62,25 @@ export function WalletCard({
         >
           <Icon className="size-4" />
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-7 -mt-1 -mr-1"
-          onClick={handleToggleCashPool}
-          disabled={isTogglingPool}
-          aria-label={
-            wallet.is_cash_pool ? "Unset as cash pool" : "Set as cash pool"
-          }
-        >
-          <Star
-            className={cn(
-              "size-3.5",
-              wallet.is_cash_pool && "fill-primary text-primary"
-            )}
-          />
-        </Button>
+        {!isCredit && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7 -mt-1 -mr-1"
+            onClick={handleToggleCashPool}
+            disabled={isTogglingPool}
+            aria-label={
+              wallet.is_cash_pool ? "Unset as cash pool" : "Set as cash pool"
+            }
+          >
+            <Star
+              className={cn(
+                "size-3.5",
+                wallet.is_cash_pool && "fill-primary text-primary"
+              )}
+            />
+          </Button>
+        )}
       </div>
 
       <div className="mt-2.5 min-h-0 flex-1">
@@ -87,10 +91,24 @@ export function WalletCard({
             Cash pool
           </span>
         )}
-        <p className="mt-2 truncate text-lg font-semibold">
-          {symbol}
-          {balance.toFixed(2)}
-        </p>
+        {isCredit ? (
+          <>
+            <p className="mt-2 truncate text-lg font-semibold">
+              {symbol}
+              {outstanding.toFixed(2)}
+            </p>
+            <p className="text-muted-foreground text-xs">
+              {wallet.credit_limit
+                ? `of ${symbol}${wallet.credit_limit.toFixed(2)} limit`
+                : "outstanding"}
+            </p>
+          </>
+        ) : (
+          <p className="mt-2 truncate text-lg font-semibold">
+            {symbol}
+            {balance.toFixed(2)}
+          </p>
+        )}
         {wallet.description && (
           <p className="text-muted-foreground mt-1 line-clamp-2 text-xs">
             {wallet.description}

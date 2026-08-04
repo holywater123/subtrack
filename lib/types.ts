@@ -28,6 +28,7 @@ export interface Expense {
   wallet_id: string | null;
   subscription_id: string | null;
   debt_id: string | null;
+  balance_transfer_id: string | null;
   created_at: string;
 }
 
@@ -39,6 +40,23 @@ export interface Wallet {
   currency: string;
   starting_balance: number;
   is_cash_pool: boolean;
+  statement_balance: number | null;
+  outstanding_balance: number | null;
+  credit_limit: number | null;
+  payment_due_day: number | null;
+  created_at: string;
+}
+
+export interface BalanceTransfer {
+  id: string;
+  wallet_id: string;
+  name: string | null;
+  currency: string;
+  original_amount: number;
+  total_interest: number;
+  term_months: number;
+  remaining_balance: number;
+  installments_paid: number;
   created_at: string;
 }
 

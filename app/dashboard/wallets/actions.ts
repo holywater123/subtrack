@@ -3,9 +3,19 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { CURRENCY_CODES } from "@/lib/currencies";
-import { WALLET_TYPE_VALUES } from "@/lib/wallet-types";
+import { WALLET_TYPE_VALUES, isCreditWallet } from "@/lib/wallet-types";
 
 type ActionResult = { error: string } | { success: true };
+
+function parseOptionalNumber(
+  raw: FormDataEntryValue | null
+): number | null | undefined {
+  const str = String(raw ?? "").trim();
+  if (!str) return null;
+  const num = Number(str);
+  if (!Number.isFinite(num)) return undefined;
+  return num;
+}
 
 function parseWalletForm(formData: FormData): ActionResult & {
   name?: string;
@@ -13,6 +23,10 @@ function parseWalletForm(formData: FormData): ActionResult & {
   currency?: string;
   startingBalance?: number;
   description?: string | null;
+  statementBalance?: number | null;
+  outstandingBalance?: number | null;
+  creditLimit?: number | null;
+  paymentDueDay?: number | null;
 } {
   const name = String(formData.get("name") ?? "").trim();
   const walletType = String(formData.get("walletType") ?? "cash");
@@ -31,6 +45,37 @@ function parseWalletForm(formData: FormData): ActionResult & {
     return { error: "Enter a valid starting balance." };
   }
 
+  let statementBalance: number | null = null;
+  let outstandingBalance: number | null = null;
+  let creditLimit: number | null = null;
+  let paymentDueDay: number | null = null;
+
+  if (isCreditWallet(walletType)) {
+    statementBalance = parseOptionalNumber(formData.get("statementBalance")) ?? null;
+    if (statementBalance === undefined) {
+      return { error: "Enter a valid statement balance." };
+    }
+    outstandingBalance = parseOptionalNumber(formData.get("outstandingBalance")) ?? null;
+    if (outstandingBalance === undefined) {
+      return { error: "Enter a valid outstanding balance." };
+    }
+    if (outstandingBalance === null) {
+      return { error: "Outstanding balance is required." };
+    }
+    creditLimit = parseOptionalNumber(formData.get("creditLimit")) ?? null;
+    if (creditLimit === undefined) {
+      return { error: "Enter a valid credit limit." };
+    }
+    const dueDayRaw = String(formData.get("paymentDueDay") ?? "").trim();
+    if (dueDayRaw) {
+      const dueDay = Number(dueDayRaw);
+      if (!Number.isInteger(dueDay) || dueDay < 1 || dueDay > 31) {
+        return { error: "Payment due date must be between 1 and 31." };
+      }
+      paymentDueDay = dueDay;
+    }
+  }
+
   return {
     success: true,
     name,
@@ -38,6 +83,10 @@ function parseWalletForm(formData: FormData): ActionResult & {
     currency,
     startingBalance,
     description: description || null,
+    statementBalance,
+    outstandingBalance,
+    creditLimit,
+    paymentDueDay,
   };
 }
 
@@ -65,6 +114,10 @@ export async function addWallet(formData: FormData): Promise<ActionResult> {
     currency: parsed.currency,
     starting_balance: parsed.startingBalance,
     description: parsed.description,
+    statement_balance: parsed.statementBalance,
+    outstanding_balance: parsed.outstandingBalance,
+    credit_limit: parsed.creditLimit,
+    payment_due_day: parsed.paymentDueDay,
   });
 
   if (error) return { error: error.message };
@@ -94,6 +147,10 @@ export async function updateWallet(
       currency: parsed.currency,
       starting_balance: parsed.startingBalance,
       description: parsed.description,
+      statement_balance: parsed.statementBalance,
+      outstanding_balance: parsed.outstandingBalance,
+      credit_limit: parsed.creditLimit,
+      payment_due_day: parsed.paymentDueDay,
     })
     .eq("id", id)
     .eq("user_id", user.id);

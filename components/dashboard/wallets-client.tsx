@@ -12,6 +12,10 @@ import {
   WalletsBreakdown,
   type WalletTypeBreakdownRow,
 } from "@/components/dashboard/wallets-breakdown";
+import {
+  CreditSummaryCard,
+  type CreditSummaryRow,
+} from "@/components/dashboard/credit-summary-card";
 import type { Wallet, WalletTransfer } from "@/lib/types";
 
 export function WalletsClient({
@@ -20,6 +24,7 @@ export function WalletsClient({
   unassignedTotal,
   totalCashOnHand,
   typeBreakdown,
+  creditSummary,
   baseCurrency,
 }: {
   walletRows: { wallet: Wallet; balance: number }[];
@@ -27,6 +32,12 @@ export function WalletsClient({
   unassignedTotal: number;
   totalCashOnHand: number;
   typeBreakdown: WalletTypeBreakdownRow[];
+  creditSummary: {
+    totalCreditLimit: number;
+    totalUsed: number;
+    totalAvailable: number;
+    rows: CreditSummaryRow[];
+  };
   baseCurrency: string;
 }) {
   const [dialogState, setDialogState] = useState<{
@@ -60,6 +71,16 @@ export function WalletsClient({
         typeBreakdown={typeBreakdown}
         baseCurrency={baseCurrency}
       />
+
+      {creditSummary.rows.length > 0 && (
+        <CreditSummaryCard
+          totalCreditLimit={creditSummary.totalCreditLimit}
+          totalUsed={creditSummary.totalUsed}
+          totalAvailable={creditSummary.totalAvailable}
+          rows={creditSummary.rows}
+          baseCurrency={baseCurrency}
+        />
+      )}
 
       <div className="flex items-center justify-between">
         <h2 className="text-muted-foreground text-sm font-medium">

@@ -46,6 +46,14 @@ export const DEBT_TYPES: DebtType[] = [
 
 export const DEBT_TYPE_VALUES: string[] = DEBT_TYPES.map((d) => d.value);
 
+// Credit Card / BNPL move to being tracked as wallets instead (with real
+// credit-limit/statement fields) - not selectable for a *new* debt, but
+// DEBT_TYPES/getDebtType above still cover any pre-existing one so it
+// keeps rendering correctly.
+export const ADDABLE_DEBT_TYPES: DebtType[] = DEBT_TYPES.filter(
+  (d) => d.value !== "credit_card" && d.value !== "bnpl"
+);
+
 const OTHER_DEBT_TYPE = DEBT_TYPES[DEBT_TYPES.length - 1];
 
 export function getDebtType(value: string): DebtType {

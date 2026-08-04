@@ -38,6 +38,11 @@ create table wallets (
   currency text not null default 'MYR',
   starting_balance numeric(10, 2) not null default 0,
   is_cash_pool boolean not null default false,
+  -- Only meaningful for credit_card/pay_later wallet types.
+  statement_balance numeric(10, 2),
+  outstanding_balance numeric(10, 2),
+  credit_limit numeric(10, 2),
+  payment_due_day smallint check (payment_due_day between 1 and 31),
   created_at timestamptz not null default now()
 );
 
@@ -79,6 +84,31 @@ create index wallet_transfers_user_id_idx on wallet_transfers (user_id);
 create index wallet_transfers_from_wallet_id_idx on wallet_transfers (from_wallet_id);
 create index wallet_transfers_to_wallet_id_idx on wallet_transfers (to_wallet_id);
 
+create table balance_transfers (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  wallet_id uuid not null references wallets(id) on delete cascade,
+  name text,
+  currency text not null default 'MYR',
+  original_amount numeric(10, 2) not null,
+  total_interest numeric(10, 2) not null default 0,
+  term_months integer not null,
+  remaining_balance numeric(10, 2) not null,
+  installments_paid integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table balance_transfers enable row level security;
+
+create policy "Users manage their own balance_transfers"
+  on balance_transfers
+  for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create index balance_transfers_user_id_idx on balance_transfers (user_id);
+create index balance_transfers_wallet_id_idx on balance_transfers (wallet_id);
+
 create table expenses (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -91,6 +121,7 @@ create table expenses (
   receipt_uploaded_at timestamptz,
   wallet_id uuid references wallets(id) on delete set null,
   subscription_id uuid references subscriptions(id) on delete set null,
+  balance_transfer_id uuid references balance_transfers(id) on delete set null,
   created_at timestamptz not null default now()
 );
 
@@ -106,6 +137,7 @@ create index expenses_user_id_idx on expenses (user_id);
 create index expenses_spent_on_idx on expenses (spent_on);
 create index expenses_wallet_id_idx on expenses (wallet_id);
 create index expenses_subscription_id_idx on expenses (subscription_id);
+create index expenses_balance_transfer_id_idx on expenses (balance_transfer_id);
 
 create table income (
   id uuid primary key default gen_random_uuid(),

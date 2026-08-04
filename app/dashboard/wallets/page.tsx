@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getExchangeRates, convertAmount } from "@/lib/exchange-rates";
 import { BASE_CURRENCY } from "@/lib/finance-summary";
 import { WalletsClient } from "@/components/dashboard/wallets-client";
-import type { Wallet, WalletTransfer } from "@/lib/types";
+import { isCreditWallet } from "@/lib/wallet-types";
+import type { BalanceTransfer, Wallet, WalletTransfer } from "@/lib/types";
 
 export default async function WalletsPage() {
   const supabase = await createClient();
@@ -12,6 +13,7 @@ export default async function WalletsPage() {
     { data: incomeData },
     { data: expensesData },
     { data: transfersData },
+    { data: balanceTransfersData },
     rates,
   ] = await Promise.all([
     supabase.from("wallets").select("*").order("created_at", { ascending: true }),
@@ -22,6 +24,10 @@ export default async function WalletsPage() {
       .select("*")
       .order("transferred_on", { ascending: false })
       .order("created_at", { ascending: false }),
+    supabase
+      .from("balance_transfers")
+      .select("*")
+      .order("created_at", { ascending: false }),
     getExchangeRates(BASE_CURRENCY),
   ]);
 
@@ -29,6 +35,7 @@ export default async function WalletsPage() {
   const income = incomeData ?? [];
   const expenses = expensesData ?? [];
   const transfers = (transfersData ?? []) as WalletTransfer[];
+  const balanceTransfers = (balanceTransfersData ?? []) as BalanceTransfer[];
 
   const walletRows = wallets.map((wallet) => {
     const incomeTotal = income
@@ -53,6 +60,9 @@ export default async function WalletsPage() {
     };
   });
 
+  const cashWalletRows = walletRows.filter((row) => !isCreditWallet(row.wallet.wallet_type));
+  const creditWalletRows = walletRows.filter((row) => isCreditWallet(row.wallet.wallet_type));
+
   const unassignedIncome = income
     .filter((i) => !i.wallet_id)
     .reduce((sum, i) => sum + convertAmount(i.amount, i.currency, BASE_CURRENCY, rates), 0);
@@ -62,10 +72,10 @@ export default async function WalletsPage() {
   const unassignedTotal = unassignedIncome - unassignedExpenses;
 
   const totalCashOnHand =
-    walletRows.reduce((sum, row) => sum + row.balanceBase, 0) + unassignedTotal;
+    cashWalletRows.reduce((sum, row) => sum + row.balanceBase, 0) + unassignedTotal;
 
   const typeTotals: Record<string, number> = {};
-  for (const row of walletRows) {
+  for (const row of cashWalletRows) {
     typeTotals[row.wallet.wallet_type] =
       (typeTotals[row.wallet.wallet_type] ?? 0) + row.balanceBase;
   }
@@ -86,6 +96,44 @@ export default async function WalletsPage() {
 
   typeBreakdown.sort((a, b) => b.amount - a.amount);
 
+  const creditRows = creditWalletRows.map(({ wallet }) => {
+    const limitBase = convertAmount(
+      wallet.credit_limit ?? 0,
+      wallet.currency,
+      BASE_CURRENCY,
+      rates
+    );
+    const outstandingBase = convertAmount(
+      wallet.outstanding_balance ?? 0,
+      wallet.currency,
+      BASE_CURRENCY,
+      rates
+    );
+    const transfersRemainingBase = balanceTransfers
+      .filter((t) => t.wallet_id === wallet.id)
+      .reduce(
+        (sum, t) => sum + convertAmount(t.remaining_balance, t.currency, BASE_CURRENCY, rates),
+        0
+      );
+    const usedBase = outstandingBase + transfersRemainingBase;
+
+    return {
+      walletId: wallet.id,
+      name: wallet.name,
+      walletType: wallet.wallet_type,
+      limit: limitBase,
+      used: usedBase,
+      available: limitBase - usedBase,
+    };
+  });
+
+  const creditSummary = {
+    totalCreditLimit: creditRows.reduce((sum, r) => sum + r.limit, 0),
+    totalUsed: creditRows.reduce((sum, r) => sum + r.used, 0),
+    totalAvailable: creditRows.reduce((sum, r) => sum + r.available, 0),
+    rows: creditRows,
+  };
+
   return (
     <WalletsClient
       walletRows={walletRows.map(({ wallet, balance }) => ({ wallet, balance }))}
@@ -93,6 +141,7 @@ export default async function WalletsPage() {
       unassignedTotal={unassignedTotal}
       totalCashOnHand={totalCashOnHand}
       typeBreakdown={typeBreakdown}
+      creditSummary={creditSummary}
       baseCurrency={BASE_CURRENCY}
     />
   );
