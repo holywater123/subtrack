@@ -174,6 +174,8 @@ export function MagicCard(props: MagicCardProps) {
       onPointerMove={handlePointerMove}
       onPointerLeave={() => reset("leave")}
       onPointerEnter={() => reset("enter")}
+      onPointerUp={() => reset("leave")}
+      onPointerCancel={() => reset("leave")}
       style={{
         background: useMotionTemplate`
           linear-gradient(var(--color-background) 0 0) padding-box,
