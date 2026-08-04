@@ -123,7 +123,7 @@ export function AdvisorClient({ messages }: { messages: ChatMessage[] }) {
         )}
       </div>
 
-      <MagicCard className="flex min-h-[50vh] flex-col rounded-2xl p-4">
+      <MagicCard className="flex h-[65vh] max-h-[520px] flex-col rounded-2xl p-4">
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto">
           {items.length === 0 ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-3 py-10 text-center">

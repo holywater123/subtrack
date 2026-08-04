@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { buildFinanceSnapshot } from "@/lib/finance-context";
 
@@ -114,7 +113,6 @@ export async function sendChatMessage(formData: FormData): Promise<SendResult> {
       .insert({ user_id: user.id, role: "assistant", content: reply });
     if (insertAssistantError) return { error: insertAssistantError.message };
 
-    revalidatePath("/dashboard/advisor");
     return { success: true, reply };
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
@@ -138,6 +136,5 @@ export async function clearChatHistory(): Promise<ActionResult> {
 
   if (error) return { error: error.message };
 
-  revalidatePath("/dashboard/advisor");
   return { success: true };
 }
