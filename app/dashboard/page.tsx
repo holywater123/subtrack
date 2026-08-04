@@ -7,7 +7,7 @@ import { getSpendingInsight } from "@/lib/ai-insight";
 import { CATEGORIES } from "@/lib/categories";
 import { normalizeOverviewLayout, type OverviewSectionId } from "@/lib/overview-layout";
 import { PeriodEstimateCard } from "@/components/dashboard/period-estimate-card";
-import { TotalSpendCard } from "@/components/dashboard/total-spend-card";
+import { IncomeSummaryCard } from "@/components/dashboard/income-summary-card";
 import { AiInsightCard } from "@/components/dashboard/ai-insight-card";
 import { BudgetProgress } from "@/components/dashboard/budget-progress";
 import {
@@ -16,19 +16,9 @@ import {
 } from "@/components/dashboard/spending-trend-card";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Button } from "@/components/ui/button";
-import { currencySymbol } from "@/lib/currencies";
-
-function currentMonthRange() {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  const toISODate = (d: Date) => d.toISOString().slice(0, 10);
-  return { start: toISODate(start), end: toISODate(end) };
-}
 
 export default async function OverviewPage() {
   const supabase = await createClient();
-  const { start, end } = currentMonthRange();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -37,39 +27,29 @@ export default async function OverviewPage() {
     financeSummary,
     insight,
     { data: budgetsData },
-    { data: incomeData },
     { data: settingsData },
-    { data: trendExpensesData },
+    { data: expensesData },
+    { data: incomeData },
     rates,
   ] = await Promise.all([
     getFinanceSummary(),
     getSpendingInsight(),
     supabase.from("budgets").select("category, monthly_amount"),
     supabase
-      .from("income")
-      .select("amount, currency")
-      .gte("received_on", start)
-      .lt("received_on", end),
-    supabase
       .from("user_settings")
       .select("overview_layout")
       .eq("user_id", user!.id)
       .maybeSingle(),
-    // Unbounded - the Spending trend card's week/month/year tabs let the
-    // user navigate to any past occurrence, not just the current one, so
-    // it needs full history (same as the Expenses tab's own fetch).
+    // Unbounded - the Spending trend card and Spending estimate card both
+    // let the user navigate to any past day/week/month/year, not just the
+    // current one, so they need full history (same as the Expenses tab's
+    // own fetch), not just the current month.
     supabase.from("expenses").select("amount, currency, spent_on"),
+    supabase.from("income").select("amount, currency, received_on"),
     getExchangeRates(BASE_CURRENCY),
   ]);
 
-  const { totalSubscriptionsMonthly, spendByCategory, expensesThisMonth } =
-    financeSummary;
-
-  const totalIncomeThisMonth = (incomeData ?? []).reduce(
-    (sum, i) => sum + convertToBase(i.amount, i.currency, rates),
-    0
-  );
-  const net = totalIncomeThisMonth - financeSummary.totalExpensesThisMonth;
+  const { totalSubscriptionsMonthly, spendByCategory } = financeSummary;
 
   const budgetByCategory: Record<string, number> = {};
   for (const b of budgetsData ?? []) {
@@ -84,25 +64,28 @@ export default async function OverviewPage() {
     budget: budgetByCategory[c.value],
   }));
 
-  const trendExpenses: TrendExpense[] = (trendExpensesData ?? []).map((e) => ({
+  const allExpenses: TrendExpense[] = (expensesData ?? []).map((e) => ({
     amountBase: convertToBase(e.amount, e.currency, rates),
     spentOn: e.spent_on,
+  }));
+  const allIncome = (incomeData ?? []).map((i) => ({
+    amountBase: convertToBase(i.amount, i.currency, rates),
+    receivedOn: i.received_on,
   }));
 
   const sections: Record<OverviewSectionId, React.ReactNode> = {
     estimate: (
       <PeriodEstimateCard
         subscriptionsMonthly={totalSubscriptionsMonthly}
-        expenses={expensesThisMonth}
+        expenses={allExpenses}
         baseCurrency={BASE_CURRENCY}
       />
     ),
-    trend: <SpendingTrendCard expenses={trendExpenses} baseCurrency={BASE_CURRENCY} />,
+    trend: <SpendingTrendCard expenses={allExpenses} baseCurrency={BASE_CURRENCY} />,
     income: (
-      <TotalSpendCard
-        label="Income this month"
-        totalMonthly={totalIncomeThisMonth}
-        subtitle={`Net ${net >= 0 ? "+" : "-"}${currencySymbol(BASE_CURRENCY)}${Math.abs(net).toFixed(2)} after ${currencySymbol(BASE_CURRENCY)}${financeSummary.totalExpensesThisMonth.toFixed(2)} in subscriptions + expenses`}
+      <IncomeSummaryCard
+        income={allIncome}
+        expenses={allExpenses}
         baseCurrency={BASE_CURRENCY}
       />
     ),

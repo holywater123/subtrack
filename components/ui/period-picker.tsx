@@ -1,7 +1,10 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useState } from "react";
+import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import {
   formatPeriodLabel,
@@ -11,9 +14,11 @@ import {
 } from "@/lib/period";
 
 // Prev/label/next row for navigating to a specific past occurrence of a
-// period - not just "the current one." Standalone so callers that already
-// pick the period type another way (e.g. a Select alongside other filters)
-// can still get date navigation without the tabs below.
+// period - not just "the current one." The label itself opens a themed
+// calendar for jumping straight to a distant date instead of clicking
+// prev repeatedly. Standalone so callers that already pick the period
+// type another way (e.g. a Select alongside other filters) can still get
+// date navigation without the tabs below.
 export function PeriodNav({
   period,
   referenceDate,
@@ -24,6 +29,7 @@ export function PeriodNav({
   onReferenceDateChange: (date: Date) => void;
 }) {
   const atCurrent = isCurrentPeriod(period, referenceDate);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   return (
     <div className="flex items-center gap-0.5">
@@ -36,9 +42,32 @@ export function PeriodNav({
       >
         <ChevronLeft className="size-4" />
       </Button>
-      <span className="min-w-[8ch] text-center text-xs font-medium">
-        {formatPeriodLabel(period, referenceDate)}
-      </span>
+
+      <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+        <PopoverTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1 px-1.5 text-xs font-medium"
+            />
+          }
+        >
+          <CalendarDays className="size-3.5" />
+          {formatPeriodLabel(period, referenceDate)}
+        </PopoverTrigger>
+        <PopoverContent align="center">
+          <Calendar
+            period={period}
+            selected={referenceDate}
+            onSelect={(date) => {
+              onReferenceDateChange(date);
+              setCalendarOpen(false);
+            }}
+          />
+        </PopoverContent>
+      </Popover>
+
       <Button
         variant="ghost"
         size="icon"

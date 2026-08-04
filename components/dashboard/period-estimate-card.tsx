@@ -2,18 +2,26 @@
 
 import { useMemo, useState } from "react";
 import { MagicCard } from "@/components/ui/magic-card";
-import { Button } from "@/components/ui/button";
+import { PeriodPicker } from "@/components/ui/period-picker";
 import { currencySymbol } from "@/lib/currencies";
-import { cn } from "@/lib/utils";
 import type { ExpenseThisMonth } from "@/lib/finance-summary";
 import {
   AVG_DAYS_PER_MONTH,
   PERIODS,
   daysIntoWeek,
-  parseLocalDate,
-  startOfWeek,
+  formatPeriodLabel,
+  isCurrentPeriod,
+  isInPeriodRange,
   type Period,
 } from "@/lib/period";
+
+function summaryLine(period: Period, referenceDate: Date, current: boolean) {
+  const label = formatPeriodLabel(period, referenceDate);
+  const lead = current ? "Actual spend so far" : "Total spend";
+  if (period === "day") return `${lead} ${current ? "today" : `on ${label}`}`;
+  if (period === "week") return `${lead} ${current ? "this week" : label}`;
+  return `${lead} ${current ? "this month" : `in ${label}`}`;
+}
 
 export function PeriodEstimateCard({
   subscriptionsMonthly,
@@ -25,81 +33,85 @@ export function PeriodEstimateCard({
   baseCurrency: string;
 }) {
   const [period, setPeriod] = useState<Period>("month");
+  const [referenceDate, setReferenceDate] = useState(() => new Date());
   const symbol = currencySymbol(baseCurrency);
+  const current = isCurrentPeriod(period, referenceDate);
 
   const stats = useMemo(() => {
-    const now = new Date();
+    const variableTotal = expenses
+      .filter((e) => isInPeriodRange(e.spentOn, period, referenceDate))
+      .reduce((sum, e) => sum + e.amountBase, 0);
 
     if (period === "day") {
-      const today = now.toDateString();
-      const variableSoFar = expenses
-        .filter((e) => parseLocalDate(e.spentOn).toDateString() === today)
-        .reduce((sum, e) => sum + e.amountBase, 0);
       const fixed = subscriptionsMonthly / AVG_DAYS_PER_MONTH;
       return {
         fixed,
-        variableSoFar,
-        actual: fixed + variableSoFar,
-        projected: fixed + variableSoFar,
-        note: "No projection for partial days - shown as spent so far.",
+        variableTotal,
+        actual: fixed + variableTotal,
+        projected: fixed + variableTotal,
+        note: current ? "No projection for partial days - shown as spent so far." : null,
       };
     }
 
     if (period === "week") {
-      const weekStart = startOfWeek(now);
-      const elapsedDays = daysIntoWeek(now);
-      const variableSoFar = expenses
-        .filter((e) => parseLocalDate(e.spentOn) >= weekStart)
-        .reduce((sum, e) => sum + e.amountBase, 0);
       const fixed = (subscriptionsMonthly * 7) / AVG_DAYS_PER_MONTH;
-      const estimatedVariable = (variableSoFar / elapsedDays) * 7;
+      if (!current) {
+        return {
+          fixed,
+          variableTotal,
+          actual: fixed + variableTotal,
+          projected: fixed + variableTotal,
+          note: null,
+        };
+      }
+      const elapsedDays = daysIntoWeek(referenceDate);
+      const estimatedVariable = (variableTotal / elapsedDays) * 7;
       return {
         fixed,
-        variableSoFar,
-        actual: fixed + variableSoFar,
+        variableTotal,
+        actual: fixed + variableTotal,
         projected: fixed + estimatedVariable,
         note: `Projected from ${elapsedDays} day${elapsedDays === 1 ? "" : "s"} so far this week.`,
       };
     }
 
+    // month
+    if (!current) {
+      return {
+        fixed: subscriptionsMonthly,
+        variableTotal,
+        actual: subscriptionsMonthly + variableTotal,
+        projected: subscriptionsMonthly + variableTotal,
+        note: null,
+      };
+    }
     const daysInMonth = new Date(
-      now.getFullYear(),
-      now.getMonth() + 1,
+      referenceDate.getFullYear(),
+      referenceDate.getMonth() + 1,
       0
     ).getDate();
-    const dayOfMonth = now.getDate();
-    const variableSoFar = expenses.reduce((sum, e) => sum + e.amountBase, 0);
-    const estimatedVariable = (variableSoFar / dayOfMonth) * daysInMonth;
+    const dayOfMonth = referenceDate.getDate();
+    const estimatedVariable = (variableTotal / dayOfMonth) * daysInMonth;
     return {
       fixed: subscriptionsMonthly,
-      variableSoFar,
-      actual: subscriptionsMonthly + variableSoFar,
+      variableTotal,
+      actual: subscriptionsMonthly + variableTotal,
       projected: subscriptionsMonthly + estimatedVariable,
       note: `Projected from ${dayOfMonth} of ${daysInMonth} days this month.`,
     };
-  }, [period, subscriptionsMonthly, expenses]);
+  }, [period, referenceDate, current, subscriptionsMonthly, expenses]);
 
   return (
     <MagicCard className="relative overflow-hidden rounded-2xl p-6">
-      <div className="flex items-center justify-between gap-4">
-        <p className="text-muted-foreground text-sm">Spending</p>
-        <div className="bg-muted flex gap-0.5 rounded-full p-0.5">
-          {PERIODS.map((p) => (
-            <Button
-              key={p.value}
-              size="sm"
-              variant="ghost"
-              onClick={() => setPeriod(p.value)}
-              className={cn(
-                "h-7 rounded-full px-3 text-xs",
-                period === p.value &&
-                  "bg-background shadow-sm hover:bg-background"
-              )}
-            >
-              {p.label}
-            </Button>
-          ))}
-        </div>
+      <p className="text-muted-foreground text-sm">Spending</p>
+      <div className="mt-2">
+        <PeriodPicker
+          period={period}
+          referenceDate={referenceDate}
+          onPeriodChange={setPeriod}
+          onReferenceDateChange={setReferenceDate}
+          periods={PERIODS}
+        />
       </div>
 
       <div className="mt-2 flex items-baseline gap-1">
@@ -109,7 +121,7 @@ export function PeriodEstimateCard({
         </span>
       </div>
       <p className="text-muted-foreground mt-1 text-xs">
-        Actual spend so far this {period}
+        {summaryLine(period, referenceDate, current)}
       </p>
 
       <div className="mt-4 flex gap-4 border-t pt-4 text-sm">
@@ -124,18 +136,20 @@ export function PeriodEstimateCard({
           <p className="text-muted-foreground text-xs">Variable</p>
           <p className="font-medium">
             {symbol}
-            {stats.variableSoFar.toFixed(2)}
+            {stats.variableTotal.toFixed(2)}
           </p>
         </div>
         <div>
-          <p className="text-muted-foreground text-xs">Projected total</p>
+          <p className="text-muted-foreground text-xs">
+            {current ? "Projected total" : "Total"}
+          </p>
           <p className="font-medium">
             {symbol}
             {stats.projected.toFixed(2)}
           </p>
-          <p className="text-muted-foreground mt-0.5 text-[11px]">
-            {stats.note}
-          </p>
+          {stats.note && (
+            <p className="text-muted-foreground mt-0.5 text-[11px]">{stats.note}</p>
+          )}
         </div>
       </div>
     </MagicCard>
