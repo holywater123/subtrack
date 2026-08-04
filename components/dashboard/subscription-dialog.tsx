@@ -25,10 +25,36 @@ import { CATEGORIES, getCategory } from "@/lib/categories";
 import { addSubscription, updateSubscription } from "@/app/dashboard/actions";
 
 const BILLING_CYCLE_ITEMS = [
+  { value: "daily", label: "Daily" },
+  { value: "weekly", label: "Weekly" },
   { value: "monthly", label: "Monthly" },
   { value: "yearly", label: "Yearly" },
-  { value: "weekly", label: "Weekly" },
 ];
+
+// The billing-date field means something different per cycle - this is a
+// one-time setup, not something to re-enter every period, so the copy
+// says what gets derived from it rather than just "pick a date."
+const DATE_FIELD_COPY: Record<
+  Subscription["billing_cycle"],
+  { label: string; description: string }
+> = {
+  daily: {
+    label: "Start date",
+    description: "Bills every day from this date on.",
+  },
+  weekly: {
+    label: "Start date",
+    description: "Bills every 7 days, on this weekday.",
+  },
+  monthly: {
+    label: "Billing date",
+    description: "Bills on this day of the month, every month.",
+  },
+  yearly: {
+    label: "Billing date",
+    description: "Bills on this date, every year.",
+  },
+};
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -82,7 +108,9 @@ function SubscriptionForm({
   const [nextBillingDate, setNextBillingDate] = useState(
     subscription?.next_billing_date ?? today()
   );
+  const [endDate, setEndDate] = useState(subscription?.end_date ?? "");
   const [isPending, startTransition] = useTransition();
+  const dateCopy = DATE_FIELD_COPY[billingCycle];
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -93,6 +121,7 @@ function SubscriptionForm({
     formData.set("billingCycle", billingCycle);
     formData.set("category", category);
     formData.set("nextBillingDate", nextBillingDate);
+    formData.set("endDate", endDate);
 
     startTransition(async () => {
       const result = subscription
@@ -202,7 +231,7 @@ function SubscriptionForm({
           </div>
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="nextBillingDate">Next billing date</Label>
+          <Label htmlFor="nextBillingDate">{dateCopy.label}</Label>
           <Input
             id="nextBillingDate"
             type="date"
@@ -210,6 +239,21 @@ function SubscriptionForm({
             onChange={(e) => setNextBillingDate(e.target.value)}
             required
           />
+          <p className="text-muted-foreground text-xs">{dateCopy.description}</p>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="endDate">End date (optional)</Label>
+          <Input
+            id="endDate"
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            min={nextBillingDate}
+          />
+          <p className="text-muted-foreground text-xs">
+            Leave blank for an ongoing subscription that bills until you pause
+            or delete it.
+          </p>
         </div>
         <DialogFooter>
           <Button type="submit" disabled={isPending}>

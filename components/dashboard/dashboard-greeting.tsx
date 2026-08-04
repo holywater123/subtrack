@@ -22,11 +22,23 @@ export function DashboardGreeting({ name }: { name: string }) {
 
   const greeting = now ? greetingForHour(now.getHours()) : "Hi";
   const quote = now ? quoteForDate(now) : "";
+  const dateText = now
+    ? now.toLocaleDateString(undefined, {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+      })
+    : "";
   const greetingText = `${greeting}${name ? `, ${name}` : ""}! Have you logged your finances today?`;
   const greetingWordCount = greetingText.split(" ").length;
 
   return (
     <div>
+      {dateText && (
+        <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+          {dateText}
+        </p>
+      )}
       <BlurFadeText
         text={greetingText}
         as="h1"

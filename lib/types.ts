@@ -1,4 +1,4 @@
-export type BillingCycle = "monthly" | "yearly" | "weekly";
+export type BillingCycle = "monthly" | "yearly" | "weekly" | "daily";
 
 export interface Subscription {
   id: string;
@@ -10,6 +10,7 @@ export interface Subscription {
   is_paused: boolean;
   next_billing_date: string;
   billing_day: number;
+  end_date: string | null;
   paused_until: string | null;
   paused_permanent: boolean;
   created_at: string;

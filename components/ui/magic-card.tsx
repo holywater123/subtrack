@@ -122,9 +122,11 @@ export function MagicCard(props: MagicCardProps) {
       if (currentMode === "orb") {
         if (reason === "enter") orbVisible.set(glowOpacityRef.current)
         else orbVisible.set(0)
-        return
       }
 
+      // The border gradient (driven by mouseX/mouseY) is always rendered
+      // regardless of mode - orb mode returning early here left it pinned
+      // at the last hover position instead of retracting off-screen.
       const off = -gradientSizeRef.current
       mouseX.set(off)
       mouseY.set(off)

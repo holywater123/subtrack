@@ -16,6 +16,10 @@ function addCycle(
   billingDay: number
 ): string {
   const d = new Date(`${dateStr}T00:00:00Z`);
+  if (cycle === "daily") {
+    d.setUTCDate(d.getUTCDate() + 1);
+    return d.toISOString().slice(0, 10);
+  }
   if (cycle === "weekly") {
     d.setUTCDate(d.getUTCDate() + 7);
     return d.toISOString().slice(0, 10);
@@ -37,10 +41,12 @@ function addCycle(
 //
 // 1. Auto-resumes any subscription whose pause-until date has passed.
 // 2. Advances each non-paused subscription's next_billing_date up to
-//    today, inserting a real expense row only for the occurrence that
-//    falls in the CURRENT calendar month. Older, skipped cycles (the app
-//    wasn't opened for a while) are advanced past without generating
-//    anything - past months are never backfilled or touched.
+//    today (and no further than end_date, for subscriptions with a
+//    defined term), inserting a real expense row only for the occurrence
+//    that falls in the CURRENT calendar month. Older, skipped cycles (the
+//    app wasn't opened for a while) are advanced past without generating
+//    anything - past months are never backfilled or touched. A
+//    subscription with no end_date just keeps billing indefinitely.
 export async function syncSubscriptionBilling(): Promise<void> {
   const supabase = await createClient();
   const {
@@ -76,7 +82,7 @@ export async function syncSubscriptionBilling(): Promise<void> {
     let nextDate = s.next_billing_date;
     let changed = false;
 
-    while (nextDate <= today) {
+    while (nextDate <= today && (!s.end_date || nextDate <= s.end_date)) {
       if (monthKey(nextDate) === currentMonth) {
         const { data: existing } = await supabase
           .from("expenses")

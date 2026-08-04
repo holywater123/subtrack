@@ -7,7 +7,7 @@ import { CURRENCY_CODES } from "@/lib/currencies";
 import { CATEGORY_VALUES } from "@/lib/categories";
 import type { BillingCycle } from "@/lib/types";
 
-const BILLING_CYCLES: BillingCycle[] = ["monthly", "yearly", "weekly"];
+const BILLING_CYCLES: BillingCycle[] = ["monthly", "yearly", "weekly", "daily"];
 
 type ActionResult = { error: string } | { success: true };
 
@@ -18,6 +18,7 @@ function parseSubscriptionForm(formData: FormData): ActionResult & {
   billingCycle?: BillingCycle;
   category?: string;
   nextBillingDate?: string;
+  endDate?: string | null;
 } {
   const name = String(formData.get("name") ?? "").trim();
   const price = Number(formData.get("price"));
@@ -25,6 +26,7 @@ function parseSubscriptionForm(formData: FormData): ActionResult & {
   const billingCycle = String(formData.get("billingCycle") ?? "monthly");
   const category = String(formData.get("category") ?? "other");
   const nextBillingDate = String(formData.get("nextBillingDate") ?? "");
+  const endDateRaw = String(formData.get("endDate") ?? "").trim();
 
   if (!name) return { error: "Name is required." };
   if (!Number.isFinite(price) || price < 0) {
@@ -42,6 +44,12 @@ function parseSubscriptionForm(formData: FormData): ActionResult & {
   if (!nextBillingDate || Number.isNaN(Date.parse(nextBillingDate))) {
     return { error: "Enter a valid billing date." };
   }
+  if (endDateRaw && Number.isNaN(Date.parse(endDateRaw))) {
+    return { error: "Enter a valid end date." };
+  }
+  if (endDateRaw && endDateRaw < nextBillingDate) {
+    return { error: "End date can't be before the billing date." };
+  }
 
   return {
     success: true,
@@ -51,6 +59,7 @@ function parseSubscriptionForm(formData: FormData): ActionResult & {
     billingCycle: billingCycle as BillingCycle,
     category,
     nextBillingDate,
+    endDate: endDateRaw || null,
   };
 }
 
@@ -73,6 +82,7 @@ export async function addSubscription(formData: FormData): Promise<ActionResult>
     category: parsed.category,
     next_billing_date: parsed.nextBillingDate,
     billing_day: Number(parsed.nextBillingDate!.slice(8, 10)),
+    end_date: parsed.endDate,
   });
 
   if (error) return { error: error.message };
@@ -105,6 +115,7 @@ export async function updateSubscription(
       category: parsed.category,
       next_billing_date: parsed.nextBillingDate,
       billing_day: Number(parsed.nextBillingDate!.slice(8, 10)),
+      end_date: parsed.endDate,
     })
     .eq("id", id)
     .eq("user_id", user.id);

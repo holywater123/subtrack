@@ -26,7 +26,12 @@ const CYCLE_LABEL: Record<Subscription["billing_cycle"], string> = {
   monthly: "/mo",
   yearly: "/yr",
   weekly: "/wk",
+  daily: "/day",
 };
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export function SubscriptionCard({
   subscription,
@@ -40,6 +45,8 @@ export function SubscriptionCard({
   const symbol = currencySymbol(subscription.currency);
   const category = getCategory(subscription.category);
   const CategoryIcon = category.icon;
+  const hasEnded = Boolean(subscription.end_date && subscription.end_date < today());
+  const willEnd = Boolean(subscription.end_date && !hasEnded);
 
   function handleDelete() {
     startTransition(async () => {
@@ -65,7 +72,7 @@ export function SubscriptionCard({
 
   return (
     <MagicCard
-      className={`rounded-xl p-4 ${subscription.is_paused ? "opacity-60" : ""}`}
+      className={`rounded-xl p-4 ${subscription.is_paused || hasEnded ? "opacity-60" : ""}`}
     >
       <div className="flex items-center gap-3">
         <div
@@ -82,6 +89,20 @@ export function SubscriptionCard({
             {subscription.is_paused && (
               <Badge variant="outline" className="text-[10px]">
                 {pausedLabel(subscription)}
+              </Badge>
+            )}
+            {hasEnded && (
+              <Badge variant="outline" className="text-[10px]">
+                Ended
+              </Badge>
+            )}
+            {willEnd && (
+              <Badge variant="outline" className="text-[10px]">
+                Ends{" "}
+                {new Date(`${subscription.end_date}T00:00:00`).toLocaleDateString(
+                  undefined,
+                  { month: "short", day: "numeric" }
+                )}
               </Badge>
             )}
           </div>
@@ -104,7 +125,7 @@ export function SubscriptionCard({
             variant="ghost"
             size="icon"
             onClick={handlePauseButton}
-            disabled={isPending}
+            disabled={isPending || (hasEnded && !subscription.is_paused)}
             aria-label={subscription.is_paused ? "Resume" : "Pause"}
           >
             {subscription.is_paused ? (

@@ -1,6 +1,6 @@
 -- Run this once in the Supabase SQL editor (Project -> SQL Editor -> New query).
 
-create type billing_cycle as enum ('monthly', 'yearly', 'weekly');
+create type billing_cycle as enum ('monthly', 'yearly', 'weekly', 'daily');
 
 create table subscriptions (
   id uuid primary key default gen_random_uuid(),
@@ -13,6 +13,7 @@ create table subscriptions (
   is_paused boolean not null default false,
   next_billing_date date not null default current_date,
   billing_day smallint not null default 1 check (billing_day between 1 and 31),
+  end_date date,
   paused_until date,
   paused_permanent boolean not null default false,
   created_at timestamptz not null default now()
