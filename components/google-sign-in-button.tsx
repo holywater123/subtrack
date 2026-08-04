@@ -3,6 +3,7 @@
 import { useFormStatus } from "react-dom";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { signInWithGoogle } from "@/app/login/actions";
+import { cn } from "@/lib/utils";
 
 function GoogleIcon() {
   return (
@@ -27,7 +28,7 @@ function GoogleIcon() {
   );
 }
 
-function SubmitButton() {
+function SubmitButton({ className }: { className?: string }) {
   const { pending } = useFormStatus();
 
   return (
@@ -36,7 +37,10 @@ function SubmitButton() {
       disabled={pending}
       background="var(--foreground)"
       shimmerColor="var(--background)"
-      className="w-full gap-2 !text-background text-sm font-medium disabled:opacity-70"
+      className={cn(
+        "w-full gap-2 !text-background text-sm font-medium disabled:opacity-70",
+        className
+      )}
     >
       <GoogleIcon />
       {pending ? "Redirecting..." : "Continue with Google"}
@@ -44,10 +48,10 @@ function SubmitButton() {
   );
 }
 
-export function GoogleSignInButton() {
+export function GoogleSignInButton({ className }: { className?: string }) {
   return (
     <form action={signInWithGoogle}>
-      <SubmitButton />
+      <SubmitButton className={className} />
     </form>
   );
 }
