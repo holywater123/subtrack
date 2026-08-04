@@ -1,4 +1,11 @@
-import { Banknote, Landmark, Tag, Wallet, type LucideIcon } from "lucide-react";
+import {
+  Banknote,
+  CreditCard,
+  Landmark,
+  Tag,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 
 export interface WalletType {
   value: string;
@@ -11,6 +18,7 @@ export const WALLET_TYPES: WalletType[] = [
   { value: "bank", label: "Bank Account", icon: Landmark, color: "bg-blue-500" },
   { value: "ewallet", label: "E-Wallet", icon: Wallet, color: "bg-violet-500" },
   { value: "cash", label: "Cash", icon: Banknote, color: "bg-emerald-500" },
+  { value: "credit_card", label: "Credit Card", icon: CreditCard, color: "bg-red-500" },
   { value: "other", label: "Other", icon: Tag, color: "bg-gray-500" },
 ];
 

@@ -184,6 +184,14 @@ create policy "Users manage their own debts"
 
 create index debts_user_id_idx on debts (user_id);
 
+-- Lets a debt payment's interest portion be logged as a real expense,
+-- linked back to the debt it came from (debts must exist first, hence
+-- this is added here rather than inline on the expenses table above).
+alter table expenses
+  add column debt_id uuid references debts(id) on delete set null;
+
+create index expenses_debt_id_idx on expenses (debt_id);
+
 create table user_settings (
   user_id uuid primary key references auth.users(id) on delete cascade,
   full_name text,

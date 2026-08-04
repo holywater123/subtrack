@@ -27,6 +27,7 @@ export interface Expense {
   receipt_uploaded_at: string | null;
   wallet_id: string | null;
   subscription_id: string | null;
+  debt_id: string | null;
   created_at: string;
 }
 

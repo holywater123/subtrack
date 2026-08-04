@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { toast } from "sonner";
-import { Paperclip, Pencil, Repeat, Trash2 } from "lucide-react";
+import { Landmark, Paperclip, Pencil, Repeat, Trash2 } from "lucide-react";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Button } from "@/components/ui/button";
 import type { Expense, Wallet } from "@/lib/types";
@@ -66,6 +66,12 @@ export function ExpenseRow({
               <span className="bg-muted text-muted-foreground flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px]">
                 <Repeat className="size-2.5" />
                 Subscription
+              </span>
+            )}
+            {expense.debt_id && (
+              <span className="bg-muted text-muted-foreground flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px]">
+                <Landmark className="size-2.5" />
+                Interest
               </span>
             )}
             {expense.receipt_path && (

@@ -1,11 +1,12 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Pencil, Trash2 } from "lucide-react";
+import { Banknote, Pencil, Trash2 } from "lucide-react";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PayDebtDialog } from "@/components/dashboard/pay-debt-dialog";
 import type { Debt } from "@/lib/types";
 import { currencySymbol } from "@/lib/currencies";
 import { getDebtType } from "@/lib/debt-types";
@@ -60,6 +61,7 @@ export function DebtRow({
   onEdit: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
+  const [payDialogOpen, setPayDialogOpen] = useState(false);
   const debtType = getDebtType(debt.debt_type);
   const Icon = debtType.icon;
   const symbol = currencySymbol(debt.currency);
@@ -97,6 +99,15 @@ export function DebtRow({
           </div>
         </div>
         <div className="flex shrink-0 gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setPayDialogOpen(true)}
+            disabled={debt.balance <= 0}
+            aria-label="Pay"
+          >
+            <Banknote className="size-4" />
+          </Button>
           <Button variant="ghost" size="icon" onClick={onEdit} aria-label="Edit">
             <Pencil className="size-4" />
           </Button>
@@ -111,6 +122,12 @@ export function DebtRow({
           </Button>
         </div>
       </div>
+
+      <PayDebtDialog
+        open={payDialogOpen}
+        debt={debt}
+        onOpenChange={setPayDialogOpen}
+      />
     </MagicCard>
   );
 }
