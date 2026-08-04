@@ -198,6 +198,19 @@ function WalletForm({
                 />
               </div>
             </div>
+            <p className="bg-muted/50 text-muted-foreground rounded-lg p-3 text-xs leading-relaxed">
+              <span className="text-foreground font-medium">
+                Statement balance
+              </span>{" "}
+              is your last bill - pay it in full by the due date to owe zero
+              interest.{" "}
+              <span className="text-foreground font-medium">
+                Outstanding balance
+              </span>{" "}
+              is what you owe right now, including anything since that bill
+              - it&apos;s the number that actually reduces your available
+              credit.
+            </p>
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="creditLimit">Combined credit limit</Label>

@@ -40,6 +40,10 @@ export function CreditSummaryCard({
         {totalUsed.toFixed(2)} used of {symbol}
         {totalCreditLimit.toFixed(2)} combined limit, converted to {baseCurrency}
       </p>
+      <p className="text-muted-foreground mt-1 text-xs">
+        Based on outstanding balance (what&apos;s owed right now), not your
+        last statement.
+      </p>
 
       <div className="mt-4 flex flex-col gap-3 border-t pt-4">
         {rows.map((row) => {
