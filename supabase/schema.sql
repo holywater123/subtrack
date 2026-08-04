@@ -11,6 +11,10 @@ create table subscriptions (
   billing_cycle billing_cycle not null default 'monthly',
   category text not null default 'other',
   is_paused boolean not null default false,
+  next_billing_date date not null default current_date,
+  billing_day smallint not null default 1 check (billing_day between 1 and 31),
+  paused_until date,
+  paused_permanent boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -85,6 +89,7 @@ create table expenses (
   receipt_path text,
   receipt_uploaded_at timestamptz,
   wallet_id uuid references wallets(id) on delete set null,
+  subscription_id uuid references subscriptions(id) on delete set null,
   created_at timestamptz not null default now()
 );
 
@@ -99,6 +104,7 @@ create policy "Users manage their own expenses"
 create index expenses_user_id_idx on expenses (user_id);
 create index expenses_spent_on_idx on expenses (spent_on);
 create index expenses_wallet_id_idx on expenses (wallet_id);
+create index expenses_subscription_id_idx on expenses (subscription_id);
 
 create table income (
   id uuid primary key default gen_random_uuid(),

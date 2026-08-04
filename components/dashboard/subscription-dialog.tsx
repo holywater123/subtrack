@@ -30,6 +30,10 @@ const BILLING_CYCLE_ITEMS = [
   { value: "weekly", label: "Weekly" },
 ];
 
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export function SubscriptionDialog({
   open,
   subscription,
@@ -75,6 +79,9 @@ function SubscriptionForm({
   const [category, setCategory] = useState(
     getCategory(subscription?.category ?? "other").value
   );
+  const [nextBillingDate, setNextBillingDate] = useState(
+    subscription?.next_billing_date ?? today()
+  );
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(e: FormEvent) {
@@ -85,6 +92,7 @@ function SubscriptionForm({
     formData.set("currency", currency);
     formData.set("billingCycle", billingCycle);
     formData.set("category", category);
+    formData.set("nextBillingDate", nextBillingDate);
 
     startTransition(async () => {
       const result = subscription
@@ -192,6 +200,16 @@ function SubscriptionForm({
               </SelectContent>
             </Select>
           </div>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="nextBillingDate">Next billing date</Label>
+          <Input
+            id="nextBillingDate"
+            type="date"
+            value={nextBillingDate}
+            onChange={(e) => setNextBillingDate(e.target.value)}
+            required
+          />
         </div>
         <DialogFooter>
           <Button type="submit" disabled={isPending}>

@@ -1,16 +1,26 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Pause, Pencil, Play, Trash2 } from "lucide-react";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PauseSubscriptionDialog } from "@/components/dashboard/pause-subscription-dialog";
 import type { Subscription } from "@/lib/types";
 import { monthlyEquivalent } from "@/lib/subscription-math";
 import { currencySymbol } from "@/lib/currencies";
 import { getCategory } from "@/lib/categories";
 import { deleteSubscription, toggleSubscriptionPause } from "@/app/dashboard/actions";
+
+function pausedLabel(subscription: Subscription) {
+  if (subscription.paused_permanent) return "Paused";
+  if (subscription.paused_until) {
+    const date = new Date(`${subscription.paused_until}T00:00:00`);
+    return `Paused until ${date.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+  }
+  return "Paused";
+}
 
 const CYCLE_LABEL: Record<Subscription["billing_cycle"], string> = {
   monthly: "/mo",
@@ -26,6 +36,7 @@ export function SubscriptionCard({
   onEdit: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
+  const [pauseDialogOpen, setPauseDialogOpen] = useState(false);
   const symbol = currencySymbol(subscription.currency);
   const category = getCategory(subscription.category);
   const CategoryIcon = category.icon;
@@ -38,18 +49,18 @@ export function SubscriptionCard({
     });
   }
 
-  function handleTogglePause() {
-    const nextPaused = !subscription.is_paused;
-    startTransition(async () => {
-      const result = await toggleSubscriptionPause(subscription.id, nextPaused);
-      if ("error" in result) toast.error(result.error);
-      else
-        toast.success(
-          nextPaused
-            ? `Paused ${subscription.name}`
-            : `Resumed ${subscription.name}`
-        );
-    });
+  function handlePauseButton() {
+    if (subscription.is_paused) {
+      startTransition(async () => {
+        const result = await toggleSubscriptionPause(subscription.id, {
+          paused: false,
+        });
+        if ("error" in result) toast.error(result.error);
+        else toast.success(`Resumed ${subscription.name}`);
+      });
+    } else {
+      setPauseDialogOpen(true);
+    }
   }
 
   return (
@@ -70,7 +81,7 @@ export function SubscriptionCard({
             </Badge>
             {subscription.is_paused && (
               <Badge variant="outline" className="text-[10px]">
-                Paused
+                {pausedLabel(subscription)}
               </Badge>
             )}
           </div>
@@ -92,7 +103,7 @@ export function SubscriptionCard({
           <Button
             variant="ghost"
             size="icon"
-            onClick={handleTogglePause}
+            onClick={handlePauseButton}
             disabled={isPending}
             aria-label={subscription.is_paused ? "Resume" : "Pause"}
           >
@@ -116,6 +127,12 @@ export function SubscriptionCard({
           </Button>
         </div>
       </div>
+
+      <PauseSubscriptionDialog
+        open={pauseDialogOpen}
+        subscription={subscription}
+        onOpenChange={setPauseDialogOpen}
+      />
     </MagicCard>
   );
 }

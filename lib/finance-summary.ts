@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getExchangeRates, convertToBase } from "@/lib/exchange-rates";
 import { monthlyEquivalentInBase } from "@/lib/subscription-math";
+import { syncSubscriptionBilling } from "@/lib/subscription-billing";
 import { CATEGORY_VALUES } from "@/lib/categories";
 import type { Subscription } from "@/lib/types";
 
@@ -31,6 +32,12 @@ function currentMonthRange() {
 // month's one-off expenses, both converted to BASE_CURRENCY, so Overview and
 // Budgets always agree on how much has been spent per category.
 export async function getFinanceSummary(): Promise<FinanceSummary> {
+  // Lazily creates this month's expense row for any subscription whose
+  // billing date has been reached, before we read expenses below - so a
+  // subscription's cost is counted exactly once, as a real expense, never
+  // as a separate phantom "monthly equivalent" added on top.
+  await syncSubscriptionBilling();
+
   const supabase = await createClient();
   const { start, end } = currentMonthRange();
 
@@ -43,7 +50,7 @@ export async function getFinanceSummary(): Promise<FinanceSummary> {
       supabase.from("subscriptions").select("*"),
       supabase
         .from("expenses")
-        .select("amount, currency, category, spent_on")
+        .select("amount, currency, category, spent_on, subscription_id")
         .gte("spent_on", start)
         .lt("spent_on", end),
     ]);
@@ -52,22 +59,25 @@ export async function getFinanceSummary(): Promise<FinanceSummary> {
   const spendByCategory: Record<string, number> = {};
   for (const category of CATEGORY_VALUES) spendByCategory[category] = 0;
 
-  let totalSubscriptionsMonthly = 0;
-  for (const sub of subscriptions) {
-    if (sub.is_paused) continue;
-    const amount = monthlyEquivalentInBase(sub, rates);
-    totalSubscriptionsMonthly += amount;
-    spendByCategory[sub.category] = (spendByCategory[sub.category] ?? 0) + amount;
-  }
-
   let totalExpensesThisMonth = 0;
   const expensesThisMonth: ExpenseThisMonth[] = [];
+  const billedSubscriptionIds = new Set<string>();
   for (const expense of expensesData ?? []) {
     const amount = convertToBase(expense.amount, expense.currency, rates);
     totalExpensesThisMonth += amount;
     spendByCategory[expense.category] =
       (spendByCategory[expense.category] ?? 0) + amount;
     expensesThisMonth.push({ amountBase: amount, spentOn: expense.spent_on });
+    if (expense.subscription_id) billedSubscriptionIds.add(expense.subscription_id);
+  }
+
+  // Subscriptions already billed this month are counted above as real
+  // expenses - only recurring cost still ahead this month belongs in the
+  // "fixed" monthly figure, otherwise it would be double-counted.
+  let totalSubscriptionsMonthly = 0;
+  for (const sub of subscriptions) {
+    if (sub.is_paused || billedSubscriptionIds.has(sub.id)) continue;
+    totalSubscriptionsMonthly += monthlyEquivalentInBase(sub, rates);
   }
 
   return {

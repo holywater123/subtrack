@@ -8,6 +8,10 @@ export interface Subscription {
   billing_cycle: BillingCycle;
   category: string;
   is_paused: boolean;
+  next_billing_date: string;
+  billing_day: number;
+  paused_until: string | null;
+  paused_permanent: boolean;
   created_at: string;
 }
 
@@ -21,6 +25,7 @@ export interface Expense {
   receipt_path: string | null;
   receipt_uploaded_at: string | null;
   wallet_id: string | null;
+  subscription_id: string | null;
   created_at: string;
 }
 
