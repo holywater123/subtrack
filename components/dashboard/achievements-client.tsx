@@ -30,9 +30,22 @@ const TIER_DOT_CLASS: Record<AchievementTier, string> = {
   gold: "bg-yellow-500",
 };
 
+// Orb glow per tier reached, echoing the tier dot colors. One-off badges
+// have no tier, so unlocked ones get the same warm "earned" glow as gold.
+const TIER_GLOW: Record<AchievementTier, { from: string; to: string }> = {
+  bronze: { from: "#d97706", to: "#f59e0b" },
+  silver: { from: "#94a3b8", to: "#e2e8f0" },
+  gold: { from: "#eab308", to: "#fde047" },
+};
+const DEFAULT_UNLOCKED_GLOW = TIER_GLOW.gold;
+
+// One-off badges are stored with tier "unlocked" (see lib/achievements.ts),
+// which isn't a real tier - skip those so this only ever returns an actual
+// bronze/silver/gold reached by a tiered achievement.
 function highestTier(achievement: AchievementView): AchievementTier | null {
   let best: AchievementTier | null = null;
   for (const t of achievement.unlockedTiers) {
+    if (t.tier === "unlocked") continue;
     if (!best || TIER_ORDER.indexOf(t.tier) > TIER_ORDER.indexOf(best)) {
       best = t.tier;
     }
@@ -52,9 +65,9 @@ function AchievementTile({
   const unlockedAt = tier
     ? achievement.unlockedTiers.find((t) => t.tier === tier)?.unlockedAt
     : achievement.unlockedTiers[0]?.unlockedAt;
+  const glow = tier ? TIER_GLOW[tier] : DEFAULT_UNLOCKED_GLOW;
 
-  return (
-    <MagicCard className="rounded-xl p-4">
+  const content = (
       <div className="flex flex-col items-center gap-2 text-center">
         <div
           className={cn(
@@ -123,8 +136,25 @@ function AchievementTile({
           </p>
         )}
       </div>
-    </MagicCard>
   );
+
+  if (achievement.unlocked) {
+    return (
+      <MagicCard
+        mode="orb"
+        glowFrom={glow.from}
+        glowTo={glow.to}
+        glowSize={200}
+        glowBlur={45}
+        glowOpacity={0.55}
+        className="rounded-xl p-4"
+      >
+        {content}
+      </MagicCard>
+    );
+  }
+
+  return <MagicCard className="rounded-xl p-4">{content}</MagicCard>;
 }
 
 export function AchievementsClient({

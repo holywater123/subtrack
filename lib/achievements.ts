@@ -9,7 +9,11 @@ import {
 } from "@/lib/achievement-catalog";
 
 interface UnlockedTier {
-  tier: AchievementTier;
+  // One-off badges are stored with tier "unlocked", not a real
+  // AchievementTier - keep that honest in the type instead of casting it
+  // away, since code branching on tier (e.g. the achievements UI's glow
+  // color) needs to know "unlocked" isn't bronze/silver/gold.
+  tier: AchievementTier | "unlocked";
   unlockedAt: string;
 }
 
@@ -130,7 +134,7 @@ export async function getAchievements(): Promise<AchievementsResult> {
   const existing = new Map<string, UnlockedTier[]>();
   for (const row of existingData ?? []) {
     const list = existing.get(row.achievement_id) ?? [];
-    list.push({ tier: row.tier as AchievementTier, unlockedAt: row.unlocked_at });
+    list.push({ tier: row.tier as AchievementTier | "unlocked", unlockedAt: row.unlocked_at });
     existing.set(row.achievement_id, list);
   }
   const existingKeys = new Set(
@@ -283,7 +287,7 @@ export async function getAchievements(): Promise<AchievementsResult> {
     );
     for (const row of newRows) {
       const list = existing.get(row.achievement_id) ?? [];
-      list.push({ tier: row.tier as AchievementTier, unlockedAt: nowIso });
+      list.push({ tier: row.tier as AchievementTier | "unlocked", unlockedAt: nowIso });
       existing.set(row.achievement_id, list);
     }
   }
