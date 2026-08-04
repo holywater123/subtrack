@@ -196,37 +196,61 @@ export function Calendar({
           <ChevronRight className="size-4" />
         </Button>
       </div>
-      <div className="grid grid-cols-7 gap-y-1 text-center">
+      <div className="grid grid-cols-7 text-center">
         {WEEKDAY_HEADERS.map((d) => (
           <span key={d} className="text-muted-foreground text-[11px] font-medium">
             {d}
           </span>
         ))}
-        {days.map((d) => {
-          const disabled = d > max;
-          const outsideMonth = d.getMonth() !== month;
-          const isToday = isSameDay(d, new Date());
-          const inSelectedWeek =
-            period === "week" && startOfWeek(d).getTime() === selectedWeekStart;
-          const isSelectedDay = period === "day" && isSameDay(d, selected);
-
-          return (
-            <button
-              key={d.toISOString()}
-              type="button"
-              disabled={disabled}
-              onClick={() => onSelect(d)}
+      </div>
+      <div className="flex flex-col gap-y-1">
+        {Array.from({ length: 6 }, (_, w) => days.slice(w * 7, w * 7 + 7)).map(
+          (week, wi) => (
+            // Each week is its own grid row so "group" scopes hover to just
+            // that row's 7 cells, instead of highlighting a single date.
+            <div
+              key={wi}
               className={cn(
-                cellClass(disabled, isSelectedDay, "size-8"),
-                !disabled && outsideMonth && "text-muted-foreground/60",
-                isToday && !isSelectedDay && "font-semibold text-primary",
-                inSelectedWeek && !isSelectedDay && "bg-accent"
+                "grid grid-cols-7 text-center",
+                period === "week" && "group"
               )}
             >
-              {d.getDate()}
-            </button>
-          );
-        })}
+              {week.map((d) => {
+                const disabled = d > max;
+                const outsideMonth = d.getMonth() !== month;
+                const isToday = isSameDay(d, new Date());
+                const inSelectedWeek =
+                  period === "week" &&
+                  startOfWeek(d).getTime() === selectedWeekStart;
+                const isSelectedDay = period === "day" && isSameDay(d, selected);
+
+                return (
+                  <button
+                    key={d.toISOString()}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => onSelect(d)}
+                    className={cn(
+                      "mx-auto size-8 rounded-md text-sm transition-colors",
+                      disabled
+                        ? "text-muted-foreground/40 cursor-not-allowed"
+                        : period === "week"
+                          ? "group-hover:bg-accent"
+                          : "hover:bg-accent",
+                      isSelectedDay &&
+                        "bg-primary text-primary-foreground hover:bg-primary",
+                      !disabled && outsideMonth && "text-muted-foreground/60",
+                      isToday && !isSelectedDay && "font-semibold text-primary",
+                      inSelectedWeek && "bg-accent"
+                    )}
+                  >
+                    {d.getDate()}
+                  </button>
+                );
+              })}
+            </div>
+          )
+        )}
       </div>
     </div>
   );
