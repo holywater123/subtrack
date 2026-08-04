@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Button } from "@/components/ui/button";
+import { CategoryBarChart } from "@/components/ui/category-bar-chart";
 import { currencySymbol } from "@/lib/currencies";
 import { getCategory } from "@/lib/categories";
 import { cn } from "@/lib/utils";
@@ -90,7 +91,15 @@ export function ExpensesBreakdown({
           No expenses logged {PERIOD_LABEL[period]}.
         </p>
       ) : (
-        <div className="mt-4 flex flex-col gap-3 border-t pt-4">
+        <div className="mt-4 flex flex-col gap-4 border-t pt-4">
+          <CategoryBarChart
+            rows={rows.map((row) => ({
+              label: row.category.label,
+              amount: row.amount,
+              pct: row.pct,
+            }))}
+            symbol={symbol}
+          />
           {rows.map((row) => {
             const Icon = row.category.icon;
             return (

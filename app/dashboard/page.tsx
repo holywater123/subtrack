@@ -10,6 +10,8 @@ import { PeriodEstimateCard } from "@/components/dashboard/period-estimate-card"
 import { TotalSpendCard } from "@/components/dashboard/total-spend-card";
 import { AiInsightCard } from "@/components/dashboard/ai-insight-card";
 import { BudgetProgress } from "@/components/dashboard/budget-progress";
+import { SpendingTrendCard } from "@/components/dashboard/spending-trend-card";
+import type { DailyAmount } from "@/components/ui/daily-trend-chart";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Button } from "@/components/ui/button";
 import { currencySymbol } from "@/lib/currencies";
@@ -75,6 +77,20 @@ export default async function OverviewPage() {
     budget: budgetByCategory[c.value],
   }));
 
+  const dayOfMonth = new Date().getDate();
+  const dailyTotals = new Map<number, number>();
+  for (let d = 1; d <= dayOfMonth; d++) dailyTotals.set(d, 0);
+  for (const e of expensesThisMonth) {
+    const day = Number(e.spentOn.slice(8, 10));
+    if (dailyTotals.has(day)) {
+      dailyTotals.set(day, (dailyTotals.get(day) ?? 0) + e.amountBase);
+    }
+  }
+  const dailySpending: DailyAmount[] = Array.from(
+    dailyTotals.entries(),
+    ([day, amount]) => ({ day, amount })
+  ).sort((a, b) => a.day - b.day);
+
   const sections: Record<OverviewSectionId, React.ReactNode> = {
     estimate: (
       <PeriodEstimateCard
@@ -83,6 +99,7 @@ export default async function OverviewPage() {
         baseCurrency={BASE_CURRENCY}
       />
     ),
+    trend: <SpendingTrendCard data={dailySpending} baseCurrency={BASE_CURRENCY} />,
     income: (
       <TotalSpendCard
         label="Income this month"

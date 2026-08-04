@@ -1,4 +1,9 @@
-export type OverviewSectionId = "estimate" | "income" | "insight" | "budgets";
+export type OverviewSectionId =
+  | "estimate"
+  | "trend"
+  | "income"
+  | "insight"
+  | "budgets";
 
 export interface OverviewSectionConfig {
   id: OverviewSectionId;
@@ -7,6 +12,7 @@ export interface OverviewSectionConfig {
 
 export const OVERVIEW_SECTION_LABELS: Record<OverviewSectionId, string> = {
   estimate: "Spending estimate",
+  trend: "Spending trend",
   income: "Income this month",
   insight: "AI insight",
   budgets: "Budgets",
@@ -14,6 +20,7 @@ export const OVERVIEW_SECTION_LABELS: Record<OverviewSectionId, string> = {
 
 export const DEFAULT_OVERVIEW_LAYOUT: OverviewSectionConfig[] = [
   { id: "estimate", visible: true },
+  { id: "trend", visible: true },
   { id: "income", visible: true },
   { id: "insight", visible: true },
   { id: "budgets", visible: true },
