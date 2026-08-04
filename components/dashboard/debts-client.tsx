@@ -6,16 +6,19 @@ import { Button } from "@/components/ui/button";
 import { TotalSpendCard } from "@/components/dashboard/total-spend-card";
 import { DebtRow } from "@/components/dashboard/debt-row";
 import { DebtDialog } from "@/components/dashboard/debt-dialog";
-import type { Debt } from "@/lib/types";
+import type { DebtListItem } from "@/lib/debt-list";
+import type { Debt, Wallet } from "@/lib/types";
 
 export function DebtsClient({
-  debts,
+  items,
   totalDebt,
   baseCurrency,
+  sourceWallets,
 }: {
-  debts: Debt[];
+  items: DebtListItem[];
   totalDebt: number;
   baseCurrency: string;
+  sourceWallets: Wallet[];
 }) {
   const [dialogState, setDialogState] = useState<{
     open: boolean;
@@ -27,7 +30,7 @@ export function DebtsClient({
       <TotalSpendCard
         label="Total debt"
         totalMonthly={totalDebt}
-        subtitle={`Across ${debts.length} debt${debts.length === 1 ? "" : "s"} - converted to ${baseCurrency}`}
+        subtitle={`Across ${items.length} debt${items.length === 1 ? "" : "s"}, including credit cards and Pay Later - converted to ${baseCurrency}`}
         baseCurrency={baseCurrency}
       />
 
@@ -45,18 +48,23 @@ export function DebtsClient({
         </Button>
       </div>
 
-      {debts.length === 0 ? (
+      {items.length === 0 ? (
         <div className="border-border text-muted-foreground rounded-xl border border-dashed p-10 text-center text-sm">
           No debts logged yet. Add a credit card, SPayLater, or loan to start
           tracking.
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {debts.map((debt) => (
+          {items.map((item) => (
             <DebtRow
-              key={debt.id}
-              debt={debt}
-              onEdit={() => setDialogState({ open: true, debt })}
+              key={`${item.kind}-${item.id}`}
+              item={item}
+              sourceWallets={sourceWallets}
+              onEdit={
+                item.kind === "debt"
+                  ? () => setDialogState({ open: true, debt: item.source as Debt })
+                  : undefined
+              }
             />
           ))}
         </div>

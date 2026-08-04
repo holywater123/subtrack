@@ -2,8 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getExchangeRates, convertToBase } from "@/lib/exchange-rates";
 import { getFinanceSummary, BASE_CURRENCY } from "@/lib/finance-summary";
 import { getCategory } from "@/lib/categories";
-import { getDebtType } from "@/lib/debt-types";
-import type { Debt } from "@/lib/types";
+import { debtsAndCreditWalletsToItems, getDebtListItemType } from "@/lib/debt-list";
+import type { Debt, Wallet } from "@/lib/types";
 
 const CACHE_HOURS = 24;
 const OPENROUTER_MODEL =
@@ -47,9 +47,10 @@ export async function getDebtAdvice(): Promise<string> {
 
   const { start, end } = currentMonthRange();
 
-  const [{ data: debtsData }, { data: incomeData }, financeSummary] =
+  const [{ data: debtsData }, { data: walletsData }, { data: incomeData }, financeSummary] =
     await Promise.all([
       supabase.from("debts").select("*"),
+      supabase.from("wallets").select("*"),
       supabase
         .from("income")
         .select("amount, currency")
@@ -59,25 +60,27 @@ export async function getDebtAdvice(): Promise<string> {
     ]);
 
   const debts = (debtsData ?? []) as Debt[];
-  if (debts.length === 0) {
+  const wallets = (walletsData ?? []) as Wallet[];
+  const items = debtsAndCreditWalletsToItems(debts, wallets);
+  if (items.length === 0) {
     return FALLBACK_NO_DATA;
   }
 
   try {
     const rates = await getExchangeRates(BASE_CURRENCY);
 
-    const debtLines = debts
-      .map((d) => {
-        const balanceBase = convertToBase(d.balance, d.currency, rates);
+    const debtLines = items
+      .map((item) => {
+        const balanceBase = convertToBase(item.balance, item.currency, rates);
         const rate =
-          d.interest_rate !== null ? `${d.interest_rate}% interest` : "rate unknown";
-        const due = d.due_date ? `due ${d.due_date}` : "no due date set";
-        return `${d.name} (${getDebtType(d.debt_type).label}, ${balanceBase.toFixed(2)} ${BASE_CURRENCY}, ${rate}, ${due})`;
+          item.interestRate !== null ? `${item.interestRate}% interest` : "rate unknown";
+        const due = item.dueDate ? `due ${item.dueDate}` : "no due date set";
+        return `${item.name} (${getDebtListItemType(item).label}, ${balanceBase.toFixed(2)} ${BASE_CURRENCY}, ${rate}, ${due})`;
       })
       .join("\n");
 
-    const totalDebt = debts.reduce(
-      (sum, d) => sum + convertToBase(d.balance, d.currency, rates),
+    const totalDebt = items.reduce(
+      (sum, item) => sum + convertToBase(item.balance, item.currency, rates),
       0
     );
 

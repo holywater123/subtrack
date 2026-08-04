@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { CURRENCY_CODES } from "@/lib/currencies";
 import { DEBT_TYPE_VALUES } from "@/lib/debt-types";
+import { isCreditWallet } from "@/lib/wallet-types";
 
 type ActionResult = { error: string } | { success: true };
 
@@ -63,6 +64,7 @@ function parseDebtForm(formData: FormData): ActionResult & {
 function revalidateAll() {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/debts");
+  revalidatePath("/dashboard/wallets");
 }
 
 export async function addDebt(formData: FormData): Promise<ActionResult> {
@@ -123,13 +125,18 @@ export async function updateDebt(
   return { success: true };
 }
 
-// Interest is real money spent - unlike the rest of the payment (which
-// just cancels debt already reflected in past purchases), it's new cost
-// with nothing else accounting for it, so it's the only part logged as
-// an expense. The balance always drops by the full payment amount
-// regardless, matching what the user actually sees on their statement.
+// Pays down either a real `debts` row or a credit-card/pay_later wallet's
+// outstanding_balance, always debited from a chosen source wallet so the
+// money leaving that account is real (reflected in its own balance via
+// debt_payments, see wallets/page.tsx). Interest is real money spent -
+// unlike the rest of the payment (which just cancels debt already
+// reflected in past purchases), it's new cost with nothing else
+// accounting for it, so it's the only part logged as a real expense. The
+// target's balance always drops by the full payment amount regardless,
+// matching what the user actually sees on their statement.
 export async function payDebt(
-  id: string,
+  targetKind: "debt" | "wallet",
+  targetId: string,
   formData: FormData
 ): Promise<ActionResult> {
   const supabase = await createClient();
@@ -141,6 +148,14 @@ export async function payDebt(
   const amount = Number(formData.get("amount"));
   if (!Number.isFinite(amount) || amount <= 0) {
     return { error: "Enter a valid payment amount." };
+  }
+
+  const sourceWalletId = String(formData.get("sourceWalletId") ?? "");
+  if (!sourceWalletId) {
+    return { error: "Choose an account to pay from." };
+  }
+  if (sourceWalletId === targetId) {
+    return { error: "Choose a different account to pay from." };
   }
 
   const interestRaw = String(formData.get("interestAmount") ?? "").trim();
@@ -155,34 +170,88 @@ export async function payDebt(
     }
   }
 
-  const { data: debt, error: fetchError } = await supabase
-    .from("debts")
-    .select("name, balance, currency")
-    .eq("id", id)
+  const { data: sourceWallet, error: sourceFetchError } = await supabase
+    .from("wallets")
+    .select("id")
+    .eq("id", sourceWalletId)
     .eq("user_id", user.id)
     .single();
 
-  if (fetchError || !debt) return { error: "Debt not found." };
+  if (sourceFetchError || !sourceWallet) return { error: "Source account not found." };
 
-  const newBalance = Math.max(0, Number(debt.balance) - amount);
+  let targetName: string;
+  let targetCurrency: string;
 
-  const { error: updateError } = await supabase
-    .from("debts")
-    .update({ balance: newBalance })
-    .eq("id", id)
-    .eq("user_id", user.id);
+  if (targetKind === "debt") {
+    const { data: debt, error: fetchError } = await supabase
+      .from("debts")
+      .select("name, balance, currency")
+      .eq("id", targetId)
+      .eq("user_id", user.id)
+      .single();
 
-  if (updateError) return { error: updateError.message };
+    if (fetchError || !debt) return { error: "Debt not found." };
+
+    targetName = debt.name;
+    targetCurrency = debt.currency;
+    const newBalance = Math.max(0, Number(debt.balance) - amount);
+
+    const { error: updateError } = await supabase
+      .from("debts")
+      .update({ balance: newBalance })
+      .eq("id", targetId)
+      .eq("user_id", user.id);
+
+    if (updateError) return { error: updateError.message };
+  } else {
+    const { data: wallet, error: fetchError } = await supabase
+      .from("wallets")
+      .select("name, wallet_type, outstanding_balance, currency")
+      .eq("id", targetId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (fetchError || !wallet) return { error: "Wallet not found." };
+    if (!isCreditWallet(wallet.wallet_type)) {
+      return { error: "Only credit card or Pay Later wallets can be paid this way." };
+    }
+
+    targetName = wallet.name;
+    targetCurrency = wallet.currency;
+    const newBalance = Math.max(0, Number(wallet.outstanding_balance ?? 0) - amount);
+
+    const { error: updateError } = await supabase
+      .from("wallets")
+      .update({ outstanding_balance: newBalance })
+      .eq("id", targetId)
+      .eq("user_id", user.id);
+
+    if (updateError) return { error: updateError.message };
+  }
+
+  const principal = amount - interestAmount;
+  if (principal > 0) {
+    const { error: paymentError } = await supabase.from("debt_payments").insert({
+      user_id: user.id,
+      source_wallet_id: sourceWalletId,
+      target_debt_id: targetKind === "debt" ? targetId : null,
+      target_wallet_id: targetKind === "wallet" ? targetId : null,
+      amount: principal,
+      currency: targetCurrency,
+    });
+    if (paymentError) return { error: paymentError.message };
+  }
 
   if (interestAmount > 0) {
     const { error: expenseError } = await supabase.from("expenses").insert({
       user_id: user.id,
       amount: interestAmount,
-      currency: debt.currency,
+      currency: targetCurrency,
       category: "finance",
       spent_on: new Date().toISOString().slice(0, 10),
-      note: `Interest on ${debt.name}`,
-      debt_id: id,
+      note: `Interest on ${targetName}`,
+      wallet_id: sourceWalletId,
+      debt_id: targetKind === "debt" ? targetId : null,
     });
     if (expenseError) return { error: expenseError.message };
   }

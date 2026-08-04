@@ -99,3 +99,14 @@ export interface Debt {
   due_date: string | null;
   created_at: string;
 }
+
+export interface DebtPayment {
+  id: string;
+  source_wallet_id: string;
+  target_debt_id: string | null;
+  target_wallet_id: string | null;
+  amount: number;
+  currency: string;
+  paid_on: string;
+  created_at: string;
+}

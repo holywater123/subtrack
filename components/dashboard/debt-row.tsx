@@ -7,9 +7,10 @@ import { MagicCard } from "@/components/ui/magic-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PayDebtDialog } from "@/components/dashboard/pay-debt-dialog";
-import type { Debt } from "@/lib/types";
+import type { DebtListItem } from "@/lib/debt-list";
+import { getDebtListItemType } from "@/lib/debt-list";
+import type { Wallet } from "@/lib/types";
 import { currencySymbol } from "@/lib/currencies";
-import { getDebtType } from "@/lib/debt-types";
 import { deleteDebt } from "@/app/dashboard/debts/actions";
 
 function formatDate(iso: string) {
@@ -54,23 +55,25 @@ function dueDateBadge(dueDate: string | null) {
 }
 
 export function DebtRow({
-  debt,
+  item,
+  sourceWallets,
   onEdit,
 }: {
-  debt: Debt;
-  onEdit: () => void;
+  item: DebtListItem;
+  sourceWallets: Wallet[];
+  onEdit?: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
   const [payDialogOpen, setPayDialogOpen] = useState(false);
-  const debtType = getDebtType(debt.debt_type);
-  const Icon = debtType.icon;
-  const symbol = currencySymbol(debt.currency);
+  const type = getDebtListItemType(item);
+  const Icon = type.icon;
+  const symbol = currencySymbol(item.currency);
 
   function handleDelete() {
     startTransition(async () => {
-      const result = await deleteDebt(debt.id);
+      const result = await deleteDebt(item.id);
       if ("error" in result) toast.error(result.error);
-      else toast.success(`Removed ${debt.name}`);
+      else toast.success(`Removed ${item.name}`);
     });
   }
 
@@ -78,23 +81,29 @@ export function DebtRow({
     <MagicCard className="rounded-xl p-4">
       <div className="flex items-center gap-3">
         <div
-          className={`flex size-10 shrink-0 items-center justify-center rounded-full text-white ${debtType.color}`}
+          className={`flex size-10 shrink-0 items-center justify-center rounded-full text-white ${type.color}`}
         >
           <Icon className="size-5" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <p className="truncate font-medium">{debt.name}</p>
-            {dueDateBadge(debt.due_date)}
+            <p className="truncate font-medium">{item.name}</p>
+            {dueDateBadge(item.dueDate)}
           </div>
           <div className="text-muted-foreground flex items-center gap-1.5 text-sm">
             <span>
               {symbol}
-              {debt.balance.toFixed(2)}
+              {item.balance.toFixed(2)}
             </span>
-            <span className="text-xs">{debtType.label}</span>
-            {debt.interest_rate !== null && (
-              <span className="text-xs">{debt.interest_rate}% APR</span>
+            {item.creditLimit !== null && (
+              <span className="text-xs">
+                of {symbol}
+                {item.creditLimit.toFixed(2)} limit
+              </span>
+            )}
+            <span className="text-xs">{type.label}</span>
+            {item.interestRate !== null && (
+              <span className="text-xs">{item.interestRate}% APR</span>
             )}
           </div>
         </div>
@@ -103,29 +112,34 @@ export function DebtRow({
             variant="ghost"
             size="icon"
             onClick={() => setPayDialogOpen(true)}
-            disabled={debt.balance <= 0}
+            disabled={item.balance <= 0}
             aria-label="Pay"
           >
             <Banknote className="size-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={onEdit} aria-label="Edit">
-            <Pencil className="size-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleDelete}
-            disabled={isPending}
-            aria-label="Delete"
-          >
-            <Trash2 className="size-4" />
-          </Button>
+          {onEdit && (
+            <Button variant="ghost" size="icon" onClick={onEdit} aria-label="Edit">
+              <Pencil className="size-4" />
+            </Button>
+          )}
+          {item.kind === "debt" && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleDelete}
+              disabled={isPending}
+              aria-label="Delete"
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          )}
         </div>
       </div>
 
       <PayDebtDialog
         open={payDialogOpen}
-        debt={debt}
+        item={item}
+        sourceWallets={sourceWallets}
         onOpenChange={setPayDialogOpen}
       />
     </MagicCard>

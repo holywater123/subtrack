@@ -3,7 +3,7 @@ import { getExchangeRates, convertAmount } from "@/lib/exchange-rates";
 import { BASE_CURRENCY } from "@/lib/finance-summary";
 import { WalletsClient } from "@/components/dashboard/wallets-client";
 import { isCreditWallet } from "@/lib/wallet-types";
-import type { BalanceTransfer, Wallet, WalletTransfer } from "@/lib/types";
+import type { BalanceTransfer, DebtPayment, Wallet, WalletTransfer } from "@/lib/types";
 
 export default async function WalletsPage() {
   const supabase = await createClient();
@@ -14,6 +14,7 @@ export default async function WalletsPage() {
     { data: expensesData },
     { data: transfersData },
     { data: balanceTransfersData },
+    { data: debtPaymentsData },
     rates,
   ] = await Promise.all([
     supabase.from("wallets").select("*").order("created_at", { ascending: true }),
@@ -28,6 +29,7 @@ export default async function WalletsPage() {
       .from("balance_transfers")
       .select("*")
       .order("created_at", { ascending: false }),
+    supabase.from("debt_payments").select("source_wallet_id, amount, currency"),
     getExchangeRates(BASE_CURRENCY),
   ]);
 
@@ -36,6 +38,10 @@ export default async function WalletsPage() {
   const expenses = expensesData ?? [];
   const transfers = (transfersData ?? []) as WalletTransfer[];
   const balanceTransfers = (balanceTransfersData ?? []) as BalanceTransfer[];
+  const debtPayments = (debtPaymentsData ?? []) as Pick<
+    DebtPayment,
+    "source_wallet_id" | "amount" | "currency"
+  >[];
 
   const walletRows = wallets.map((wallet) => {
     const incomeTotal = income
@@ -50,8 +56,20 @@ export default async function WalletsPage() {
     const transfersOut = transfers
       .filter((t) => t.from_wallet_id === wallet.id)
       .reduce((sum, t) => sum + convertAmount(t.amount, t.currency, wallet.currency, rates), 0);
+    // Principal portion of debt/credit-card payments made FROM this wallet -
+    // real cash leaving to settle debt, kept separate from expenseTotal so
+    // it isn't double-counted as spend (interest already flows through
+    // expenseTotal via its own wallet-linked expense row).
+    const debtPaymentsOut = debtPayments
+      .filter((p) => p.source_wallet_id === wallet.id)
+      .reduce((sum, p) => sum + convertAmount(p.amount, p.currency, wallet.currency, rates), 0);
     const balance =
-      wallet.starting_balance + incomeTotal - expenseTotal + transfersIn - transfersOut;
+      wallet.starting_balance +
+      incomeTotal -
+      expenseTotal +
+      transfersIn -
+      transfersOut -
+      debtPaymentsOut;
 
     return {
       wallet,
