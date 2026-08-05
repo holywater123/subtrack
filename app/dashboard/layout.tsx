@@ -8,6 +8,7 @@ import { NavTabs } from "@/components/dashboard/nav-tabs";
 import { DashboardGreeting } from "@/components/dashboard/dashboard-greeting";
 import { DashboardParticles } from "@/components/dashboard/dashboard-particles";
 import { AdvisorWidget } from "@/components/dashboard/advisor-widget";
+import { QuickEntryWidget } from "@/components/dashboard/quick-entry-widget";
 import type { ChatMessage } from "@/lib/types";
 
 export default async function DashboardLayout({
@@ -62,6 +63,7 @@ export default async function DashboardLayout({
       {children}
 
       <AdvisorWidget messages={(chatMessages ?? []) as ChatMessage[]} />
+      <QuickEntryWidget />
     </div>
   );
 }
