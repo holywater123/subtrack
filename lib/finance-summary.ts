@@ -72,8 +72,12 @@ export async function getFinanceSummary(): Promise<FinanceSummary> {
   }
 
   // Subscriptions already billed this month are counted above as real
-  // expenses - only recurring cost still ahead this month belongs in the
-  // "fixed" monthly figure, otherwise it would be double-counted.
+  // expenses - only recurring cost still ahead this month belongs in this
+  // figure, otherwise it would be double-counted. This is a forward-looking
+  // "known obligation still coming" number, not money already spent - feed
+  // it to lib/daily-safe-limit.ts's upcomingObligations, never display it
+  // as if it were already-spent "actual" spend (see PeriodEstimateCard,
+  // which deliberately does not use this at all).
   let totalSubscriptionsMonthly = 0;
   for (const sub of subscriptions) {
     if (sub.is_paused || billedSubscriptionIds.has(sub.id)) continue;

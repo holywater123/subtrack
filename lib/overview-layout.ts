@@ -1,4 +1,5 @@
 export type OverviewSectionId =
+  | "safelimit"
   | "estimate"
   | "trend"
   | "income"
@@ -11,6 +12,7 @@ export interface OverviewSectionConfig {
 }
 
 export const OVERVIEW_SECTION_LABELS: Record<OverviewSectionId, string> = {
+  safelimit: "Daily safe limit",
   estimate: "Spending estimate",
   trend: "Spending trend",
   income: "Income this month",
@@ -18,7 +20,10 @@ export const OVERVIEW_SECTION_LABELS: Record<OverviewSectionId, string> = {
   budgets: "Budgets",
 };
 
+// safelimit leads - it's the hero metric, meant to be seen before anything
+// else (see components/dashboard/daily-safe-limit-card.tsx).
 export const DEFAULT_OVERVIEW_LAYOUT: OverviewSectionConfig[] = [
+  { id: "safelimit", visible: true },
   { id: "estimate", visible: true },
   { id: "trend", visible: true },
   { id: "income", visible: true },

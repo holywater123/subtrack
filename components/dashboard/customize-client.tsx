@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
-import { ArrowLeft, Eye, EyeOff, GripVertical } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, GripVertical, Search } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -23,6 +23,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
   OVERVIEW_SECTION_LABELS,
@@ -89,7 +90,12 @@ export function CustomizeClient({
   initialLayout: OverviewSectionConfig[];
 }) {
   const [layout, setLayout] = useState(initialLayout);
+  const [query, setQuery] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  const filtered = layout.filter((s) =>
+    OVERVIEW_SECTION_LABELS[s.id].toLowerCase().includes(query.toLowerCase())
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -137,6 +143,16 @@ export function CustomizeClient({
         </div>
       </div>
 
+      <div className="relative">
+        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search sections..."
+          className="pl-9"
+        />
+      </div>
+
       <DndContext
         id="overview-layout"
         sensors={sensors}
@@ -144,17 +160,23 @@ export function CustomizeClient({
         onDragEnd={handleDragEnd}
       >
         <SortableContext
-          items={layout.map((s) => s.id)}
+          items={filtered.map((s) => s.id)}
           strategy={verticalListSortingStrategy}
         >
           <div className="flex flex-col gap-3">
-            {layout.map((section) => (
-              <SortableRow
-                key={section.id}
-                section={section}
-                onToggleVisible={() => handleToggle(section.id)}
-              />
-            ))}
+            {filtered.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                No sections match &ldquo;{query}&rdquo;.
+              </p>
+            ) : (
+              filtered.map((section) => (
+                <SortableRow
+                  key={section.id}
+                  section={section}
+                  onToggleVisible={() => handleToggle(section.id)}
+                />
+              ))
+            )}
           </div>
         </SortableContext>
       </DndContext>

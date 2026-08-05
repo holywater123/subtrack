@@ -7,7 +7,10 @@ import { getExchangeRates, convertToBase } from "@/lib/exchange-rates";
 import { getSpendingInsight } from "@/lib/ai-insight";
 import { CATEGORIES } from "@/lib/categories";
 import { normalizeOverviewLayout, type OverviewSectionId } from "@/lib/overview-layout";
+import { computeDailySafeLimit } from "@/lib/daily-safe-limit";
+import { isInPeriodRange } from "@/lib/period";
 import { PeriodEstimateCard } from "@/components/dashboard/period-estimate-card";
+import { DailySafeLimitCard } from "@/components/dashboard/daily-safe-limit-card";
 import { IncomeSummaryCard } from "@/components/dashboard/income-summary-card";
 import { AiInsightCard } from "@/components/dashboard/ai-insight-card";
 import { BudgetProgress } from "@/components/dashboard/budget-progress";
@@ -85,13 +88,26 @@ export default async function OverviewPage() {
     receivedOn: i.received_on,
   }));
 
+  const today = new Date();
+  const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const incomeThisMonth = allIncome
+    .filter((i) => isInPeriodRange(i.receivedOn, "month", today))
+    .reduce((sum, i) => sum + i.amountBase, 0);
+  const incomeLastMonth = allIncome
+    .filter((i) => isInPeriodRange(i.receivedOn, "month", lastMonth))
+    .reduce((sum, i) => sum + i.amountBase, 0);
+  const safeLimit = computeDailySafeLimit({
+    incomeThisMonth,
+    incomeLastMonth,
+    spentSoFar: financeSummary.totalExpensesThisMonth,
+    upcomingObligations: totalSubscriptionsMonthly,
+    today,
+  });
+
   const sections: Record<OverviewSectionId, React.ReactNode> = {
+    safelimit: <DailySafeLimitCard result={safeLimit} baseCurrency={BASE_CURRENCY} />,
     estimate: (
-      <PeriodEstimateCard
-        subscriptionsMonthly={totalSubscriptionsMonthly}
-        expenses={allExpenses}
-        baseCurrency={BASE_CURRENCY}
-      />
+      <PeriodEstimateCard expenses={allExpenses} baseCurrency={BASE_CURRENCY} />
     ),
     trend: <SpendingTrendCard expenses={allExpenses} baseCurrency={BASE_CURRENCY} />,
     income: (
