@@ -18,6 +18,7 @@ import {
   SpendingTrendCard,
   type TrendExpense,
 } from "@/components/dashboard/spending-trend-card";
+import { TipsCard } from "@/components/dashboard/tips-card";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Button } from "@/components/ui/button";
 
@@ -170,6 +171,8 @@ export default async function OverviewPage() {
         .map((section) => (
           <div key={section.id}>{sections[section.id]}</div>
         ))}
+
+      <TipsCard />
     </div>
   );
 }

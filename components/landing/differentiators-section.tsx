@@ -23,7 +23,10 @@ export function DifferentiatorsSection() {
     <section className="border-border border-t">
       <div className="mx-auto max-w-4xl px-4 py-20">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+          <p className="text-5xl font-black tracking-tight text-balance sm:text-7xl">
+            FXCK THE SYSTEM
+          </p>
+          <h2 className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">
             Banks made spending easy. We&apos;re making tracking easier.
           </h2>
           <p className="text-muted-foreground mt-2 text-sm">
