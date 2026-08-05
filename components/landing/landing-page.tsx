@@ -1,6 +1,7 @@
 import { LandingHeader } from "@/components/landing/landing-header";
 import { HeroSection } from "@/components/landing/hero-section";
 import { FeatureGrid } from "@/components/landing/feature-grid";
+import { AiShowcaseSection } from "@/components/landing/ai-showcase-section";
 import { DifferentiatorsSection } from "@/components/landing/differentiators-section";
 import { PricingSection } from "@/components/landing/pricing-section";
 import { FinalCtaSection } from "@/components/landing/final-cta-section";
@@ -12,6 +13,7 @@ export function LandingPage() {
       <LandingHeader />
       <HeroSection />
       <FeatureGrid />
+      <AiShowcaseSection />
       <DifferentiatorsSection />
       <PricingSection />
       <FinalCtaSection />

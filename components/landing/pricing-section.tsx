@@ -11,9 +11,11 @@ const FREE_FEATURES = [
   "Installable app (PWA)",
 ];
 
-const PRO_FEATURES = [
+const PLUS_FEATURES = [
+  "Everything in Free",
+  "AI quick-entry (type or speak your spending)",
+  "Batch receipt scanning",
   "Shared household budgets",
-  "Multiple household members",
   "Priority AI credits",
 ];
 
@@ -32,9 +34,11 @@ export function PricingSection() {
 
         <div className="mx-auto mt-10 grid max-w-2xl grid-cols-1 gap-6 sm:grid-cols-2">
           <MagicCard className="rounded-2xl p-6">
-            <p className="text-sm font-medium">Free</p>
+            <p className="text-sm font-medium">Free Forever</p>
             <p className="mt-1 text-3xl font-semibold tracking-tight">RM0</p>
-            <p className="text-muted-foreground text-xs">forever</p>
+            <p className="text-muted-foreground text-xs">
+              manual entry, forever
+            </p>
             <ul className="mt-6 flex flex-col gap-2.5 text-sm">
               {FREE_FEATURES.map((feature) => (
                 <li key={feature} className="flex items-start gap-2">
@@ -49,15 +53,20 @@ export function PricingSection() {
           </MagicCard>
 
           <div className="border-border rounded-2xl border border-dashed p-6 opacity-60">
-            <p className="text-sm font-medium">Pro</p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium">Plus</p>
+              <span className="border-border text-muted-foreground rounded-full border px-2 py-0.5 text-[10px]">
+                1-week free trial
+              </span>
+            </div>
             <p className="mt-1 text-3xl font-semibold tracking-tight">
-              Coming soon
+              $4.99<span className="text-lg font-medium">/mo</span>
             </p>
             <p className="text-muted-foreground text-xs">
-              for households &amp; power users
+              or $49/yr - for households &amp; power users
             </p>
             <ul className="mt-6 flex flex-col gap-2.5 text-sm">
-              {PRO_FEATURES.map((feature) => (
+              {PLUS_FEATURES.map((feature) => (
                 <li key={feature} className="flex items-start gap-2">
                   <Check className="text-muted-foreground mt-0.5 size-4 shrink-0" />
                   <span>{feature}</span>
