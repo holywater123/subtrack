@@ -1,3 +1,5 @@
+import type { TrackingFocus } from "@/lib/onboarding";
+
 export type OverviewSectionId =
   | "safelimit"
   | "estimate"
@@ -30,6 +32,38 @@ export const DEFAULT_OVERVIEW_LAYOUT: OverviewSectionConfig[] = [
   { id: "insight", visible: true },
   { id: "budgets", visible: true },
 ];
+
+// Applied exactly once, at onboarding completion, from the "what are you
+// tracking?" answer - never re-applied later (a Settings edit to
+// tracking_focus only updates that raw field; layout changes after
+// onboarding go exclusively through the Customize page).
+export const TRACKING_FOCUS_LAYOUTS: Record<TrackingFocus, OverviewSectionConfig[]> = {
+  everything: DEFAULT_OVERVIEW_LAYOUT,
+  subscriptions: [
+    { id: "safelimit", visible: true },
+    { id: "estimate", visible: true },
+    { id: "budgets", visible: true },
+    { id: "trend", visible: true },
+    { id: "insight", visible: true },
+    { id: "income", visible: false },
+  ],
+  daily_spend: [
+    { id: "safelimit", visible: true },
+    { id: "estimate", visible: true },
+    { id: "trend", visible: true },
+    { id: "budgets", visible: true },
+    { id: "insight", visible: true },
+    { id: "income", visible: false },
+  ],
+  income: [
+    { id: "income", visible: true },
+    { id: "safelimit", visible: true },
+    { id: "estimate", visible: true },
+    { id: "trend", visible: true },
+    { id: "budgets", visible: true },
+    { id: "insight", visible: true },
+  ],
+};
 
 const VALID_IDS = new Set<string>(Object.keys(OVERVIEW_SECTION_LABELS));
 

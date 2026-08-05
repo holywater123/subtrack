@@ -7,10 +7,57 @@ import { MagicCard } from "@/components/ui/magic-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { CURRENCY_ITEMS } from "@/lib/currencies";
+import {
+  COUNTRIES,
+  OCCUPATION_OPTIONS,
+  LIFESTYLE_OPTIONS,
+  TRACKING_FOCUS_OPTIONS,
+  type TrackingFocus,
+} from "@/lib/onboarding";
 import { updateProfile, submitFeedback } from "@/app/dashboard/settings/actions";
 import { signOut } from "@/app/dashboard/actions";
 import { InstallAppButton } from "@/components/install-app-button";
+
+const COUNTRY_ITEMS = COUNTRIES.map((c) => ({ value: c.code, label: c.name }));
+
+function ChipGroup({
+  options,
+  value,
+  onChange,
+}: {
+  options: string[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((option) => (
+        <button
+          key={option}
+          type="button"
+          onClick={() => onChange(option)}
+          className={cn(
+            "rounded-full border px-3 py-1.5 text-xs transition-colors",
+            value === option
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-border text-muted-foreground hover:text-foreground"
+          )}
+        >
+          {option}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function calculateAge(birthdate: string): number | null {
   if (!birthdate) return null;
@@ -31,15 +78,32 @@ export function SettingsClient({
   fullName,
   birthdate,
   goal,
+  occupation,
+  lifestyle,
+  country,
+  defaultCurrency,
+  trackingFocus,
 }: {
   email: string;
   fullName: string;
   birthdate: string;
   goal: string;
+  occupation: string;
+  lifestyle: string;
+  country: string;
+  defaultCurrency: string;
+  trackingFocus: string;
 }) {
   const [name, setName] = useState(fullName);
   const [dob, setDob] = useState(birthdate);
   const [goalText, setGoalText] = useState(goal);
+  const [occupationValue, setOccupationValue] = useState(occupation);
+  const [lifestyleValue, setLifestyleValue] = useState(lifestyle);
+  const [countryValue, setCountryValue] = useState(country);
+  const [currencyValue, setCurrencyValue] = useState(defaultCurrency);
+  const [trackingFocusValue, setTrackingFocusValue] = useState<TrackingFocus>(
+    (trackingFocus as TrackingFocus) || "everything"
+  );
   const [isPending, startTransition] = useTransition();
 
   const age = calculateAge(dob);
@@ -50,6 +114,11 @@ export function SettingsClient({
     formData.set("fullName", name);
     formData.set("birthdate", dob);
     formData.set("goal", goalText);
+    formData.set("occupation", occupationValue);
+    formData.set("lifestyle", lifestyleValue);
+    formData.set("country", countryValue);
+    formData.set("defaultCurrency", currencyValue);
+    formData.set("trackingFocus", trackingFocusValue);
 
     startTransition(async () => {
       const result = await updateProfile(formData);
@@ -99,6 +168,80 @@ export function SettingsClient({
               onChange={(e) => setGoalText(e.target.value)}
               placeholder="e.g. Build a 6-month emergency fund, retire by 50..."
             />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label>Occupation (optional)</Label>
+            <ChipGroup
+              options={OCCUPATION_OPTIONS}
+              value={occupationValue}
+              onChange={setOccupationValue}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label>Lifestyle (optional)</Label>
+            <ChipGroup
+              options={LIFESTYLE_OPTIONS}
+              value={lifestyleValue}
+              onChange={setLifestyleValue}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label>What are you tracking?</Label>
+            <ChipGroup
+              options={TRACKING_FOCUS_OPTIONS.map((o) => o.label)}
+              value={
+                TRACKING_FOCUS_OPTIONS.find((o) => o.value === trackingFocusValue)
+                  ?.label ?? ""
+              }
+              onChange={(label) => {
+                const match = TRACKING_FOCUS_OPTIONS.find((o) => o.label === label);
+                if (match) setTrackingFocusValue(match.value);
+              }}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
+              <Label>Country</Label>
+              <Select
+                items={COUNTRY_ITEMS}
+                value={countryValue}
+                onValueChange={(v) => v && setCountryValue(v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a country" />
+                </SelectTrigger>
+                <SelectContent>
+                  {COUNTRY_ITEMS.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label>Default currency</Label>
+              <Select
+                items={CURRENCY_ITEMS}
+                value={currencyValue}
+                onValueChange={(v) => v && setCurrencyValue(v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CURRENCY_ITEMS.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-muted-foreground text-xs">
+                Pre-selected for new entries - each one can still use a
+                different currency.
+              </p>
+            </div>
           </div>
           <div>
             <Button type="submit" disabled={isPending}>

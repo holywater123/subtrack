@@ -27,11 +27,15 @@ export default async function DashboardLayout({
   const [{ data: settings }, { data: chatMessages }] = await Promise.all([
     supabase
       .from("user_settings")
-      .select("full_name")
+      .select("full_name, onboarding_completed_at")
       .eq("user_id", user.id)
       .maybeSingle(),
     supabase.from("chat_messages").select("*").order("created_at", { ascending: true }),
   ]);
+
+  if (!settings?.onboarding_completed_at) {
+    redirect("/onboarding");
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8 sm:py-12">
