@@ -7,6 +7,9 @@ import type { BalanceTransfer, DebtPayment, Wallet, WalletTransfer } from "@/lib
 
 export default async function WalletsPage() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const [
     { data: walletsData },
@@ -15,6 +18,7 @@ export default async function WalletsPage() {
     { data: transfersData },
     { data: balanceTransfersData },
     { data: debtPaymentsData },
+    { data: settings },
     rates,
   ] = await Promise.all([
     supabase.from("wallets").select("*").order("created_at", { ascending: true }),
@@ -30,6 +34,11 @@ export default async function WalletsPage() {
       .select("*")
       .order("created_at", { ascending: false }),
     supabase.from("debt_payments").select("source_wallet_id, amount, currency"),
+    supabase
+      .from("user_settings")
+      .select("default_currency")
+      .eq("user_id", user!.id)
+      .maybeSingle(),
     getExchangeRates(BASE_CURRENCY),
   ]);
 
@@ -162,6 +171,7 @@ export default async function WalletsPage() {
       typeBreakdown={typeBreakdown}
       creditSummary={creditSummary}
       baseCurrency={BASE_CURRENCY}
+      defaultCurrency={settings?.default_currency ?? "MYR"}
     />
   );
 }

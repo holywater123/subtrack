@@ -14,11 +14,13 @@ export function DebtsClient({
   totalDebt,
   baseCurrency,
   sourceWallets,
+  defaultCurrency,
 }: {
   items: DebtListItem[];
   totalDebt: number;
   baseCurrency: string;
   sourceWallets: Wallet[];
+  defaultCurrency: string;
 }) {
   const [dialogState, setDialogState] = useState<{
     open: boolean;
@@ -73,6 +75,7 @@ export function DebtsClient({
       <DebtDialog
         open={dialogState.open}
         debt={dialogState.debt}
+        defaultCurrency={defaultCurrency}
         onOpenChange={(open) => setDialogState((s) => ({ ...s, open }))}
       />
     </div>

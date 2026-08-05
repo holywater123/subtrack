@@ -12,10 +12,12 @@ export function DashboardClient({
   subscriptions,
   totalMonthly,
   baseCurrency,
+  defaultCurrency,
 }: {
   subscriptions: Subscription[];
   totalMonthly: number;
   baseCurrency: string;
+  defaultCurrency: string;
 }) {
   const [dialogState, setDialogState] = useState<{
     open: boolean;
@@ -66,6 +68,7 @@ export function DashboardClient({
       <SubscriptionDialog
         open={dialogState.open}
         subscription={dialogState.subscription}
+        defaultCurrency={defaultCurrency}
         onOpenChange={(open) => setDialogState((s) => ({ ...s, open }))}
       />
     </div>

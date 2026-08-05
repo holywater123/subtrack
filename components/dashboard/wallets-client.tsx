@@ -28,6 +28,7 @@ export function WalletsClient({
   typeBreakdown,
   creditSummary,
   baseCurrency,
+  defaultCurrency,
 }: {
   walletRows: { wallet: Wallet; balance: number }[];
   transfers: WalletTransfer[];
@@ -42,6 +43,7 @@ export function WalletsClient({
     rows: CreditSummaryRow[];
   };
   baseCurrency: string;
+  defaultCurrency: string;
 }) {
   const [dialogState, setDialogState] = useState<{
     open: boolean;
@@ -133,6 +135,7 @@ export function WalletsClient({
       <WalletDialog
         open={dialogState.open}
         wallet={dialogState.wallet}
+        defaultCurrency={defaultCurrency}
         onOpenChange={(open) => setDialogState((s) => ({ ...s, open }))}
       />
 

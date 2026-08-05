@@ -15,15 +15,25 @@ export default async function ExpensesPage() {
   // wouldn't show up here until they'd visited Overview or Subscriptions.
   await Promise.all([cleanupExpiredReceipts(), syncSubscriptionBilling()]);
 
-  const [{ data: expenses }, { data: wallets }, rates] = await Promise.all([
-    supabase
-      .from("expenses")
-      .select("*")
-      .order("spent_on", { ascending: false })
-      .order("created_at", { ascending: false }),
-    supabase.from("wallets").select("*").order("created_at", { ascending: true }),
-    getExchangeRates(BASE_CURRENCY),
-  ]);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [{ data: expenses }, { data: wallets }, { data: settings }, rates] =
+    await Promise.all([
+      supabase
+        .from("expenses")
+        .select("*")
+        .order("spent_on", { ascending: false })
+        .order("created_at", { ascending: false }),
+      supabase.from("wallets").select("*").order("created_at", { ascending: true }),
+      supabase
+        .from("user_settings")
+        .select("default_currency")
+        .eq("user_id", user!.id)
+        .maybeSingle(),
+      getExchangeRates(BASE_CURRENCY),
+    ]);
 
   const expensesList = (expenses ?? []) as Expense[];
   const breakdownExpenses = expensesList.map((e) => ({
@@ -38,6 +48,7 @@ export default async function ExpensesPage() {
       breakdownExpenses={breakdownExpenses}
       baseCurrency={BASE_CURRENCY}
       wallets={(wallets ?? []) as Wallet[]}
+      defaultCurrency={settings?.default_currency ?? "MYR"}
     />
   );
 }

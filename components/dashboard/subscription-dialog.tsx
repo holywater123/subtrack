@@ -63,10 +63,12 @@ function today() {
 export function SubscriptionDialog({
   open,
   subscription,
+  defaultCurrency,
   onOpenChange,
 }: {
   open: boolean;
   subscription?: Subscription;
+  defaultCurrency?: string;
   onOpenChange: (open: boolean) => void;
 }) {
   return (
@@ -78,6 +80,7 @@ export function SubscriptionDialog({
             // subscription is opened, instead of syncing props via an effect.
             key={subscription?.id ?? "new"}
             subscription={subscription}
+            defaultCurrency={defaultCurrency}
             onDone={() => onOpenChange(false)}
           />
         )}
@@ -88,9 +91,11 @@ export function SubscriptionDialog({
 
 function SubscriptionForm({
   subscription,
+  defaultCurrency,
   onDone,
 }: {
   subscription?: Subscription;
+  defaultCurrency?: string;
   onDone: () => void;
 }) {
   const isEditing = Boolean(subscription);
@@ -98,7 +103,9 @@ function SubscriptionForm({
   const [price, setPrice] = useState(
     subscription ? String(subscription.price) : ""
   );
-  const [currency, setCurrency] = useState(subscription?.currency ?? "USD");
+  const [currency, setCurrency] = useState(
+    subscription?.currency ?? defaultCurrency ?? "MYR"
+  );
   const [billingCycle, setBillingCycle] = useState<
     Subscription["billing_cycle"]
   >(subscription?.billing_cycle ?? "monthly");

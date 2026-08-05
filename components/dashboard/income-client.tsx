@@ -24,9 +24,11 @@ const PERIOD_ITEMS: { value: Period | "all"; label: string }[] = [
 export function IncomeClient({
   income,
   wallets,
+  defaultCurrency,
 }: {
   income: Income[];
   wallets: Wallet[];
+  defaultCurrency: string;
 }) {
   const [dialogState, setDialogState] = useState<{
     open: boolean;
@@ -114,6 +116,7 @@ export function IncomeClient({
         open={dialogState.open}
         income={dialogState.income}
         wallets={wallets}
+        defaultCurrency={defaultCurrency}
         onOpenChange={(open) => setDialogState((s) => ({ ...s, open }))}
       />
     </div>

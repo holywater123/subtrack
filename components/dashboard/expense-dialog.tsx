@@ -38,11 +38,13 @@ export function ExpenseDialog({
   open,
   expense,
   wallets,
+  defaultCurrency,
   onOpenChange,
 }: {
   open: boolean;
   expense?: Expense;
   wallets: Wallet[];
+  defaultCurrency?: string;
   onOpenChange: (open: boolean) => void;
 }) {
   return (
@@ -53,6 +55,7 @@ export function ExpenseDialog({
             key={expense?.id ?? "new"}
             expense={expense}
             wallets={wallets}
+            defaultCurrency={defaultCurrency}
             onDone={() => onOpenChange(false)}
           />
         )}
@@ -64,17 +67,21 @@ export function ExpenseDialog({
 function ExpenseForm({
   expense,
   wallets,
+  defaultCurrency,
   onDone,
 }: {
   expense?: Expense;
   wallets: Wallet[];
+  defaultCurrency?: string;
   onDone: () => void;
 }) {
   const isEditing = Boolean(expense);
   const [amount, setAmount] = useState(
     expense ? String(expense.amount) : ""
   );
-  const [currency, setCurrency] = useState(expense?.currency ?? "MYR");
+  const [currency, setCurrency] = useState(
+    expense?.currency ?? defaultCurrency ?? "MYR"
+  );
   const [category, setCategory] = useState(
     getCategory(expense?.category ?? "other").value
   );

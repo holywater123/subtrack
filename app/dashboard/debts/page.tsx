@@ -10,13 +10,22 @@ import type { Debt, Wallet } from "@/lib/types";
 
 export default async function DebtsPage() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const [{ data: debtsData }, { data: walletsData }, advice, rates] = await Promise.all([
-    supabase.from("debts").select("*").order("created_at", { ascending: false }),
-    supabase.from("wallets").select("*").order("created_at", { ascending: true }),
-    getDebtAdvice(),
-    getExchangeRates(BASE_CURRENCY),
-  ]);
+  const [{ data: debtsData }, { data: walletsData }, { data: settings }, advice, rates] =
+    await Promise.all([
+      supabase.from("debts").select("*").order("created_at", { ascending: false }),
+      supabase.from("wallets").select("*").order("created_at", { ascending: true }),
+      supabase
+        .from("user_settings")
+        .select("default_currency")
+        .eq("user_id", user!.id)
+        .maybeSingle(),
+      getDebtAdvice(),
+      getExchangeRates(BASE_CURRENCY),
+    ]);
 
   const debts = (debtsData ?? []) as Debt[];
   const wallets = (walletsData ?? []) as Wallet[];
@@ -40,6 +49,7 @@ export default async function DebtsPage() {
         totalDebt={totalDebt}
         baseCurrency={BASE_CURRENCY}
         sourceWallets={sourceWallets}
+        defaultCurrency={settings?.default_currency ?? "MYR"}
       />
       <DebtAdviceCard advice={advice} />
     </div>

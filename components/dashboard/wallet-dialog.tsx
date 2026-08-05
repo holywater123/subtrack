@@ -27,10 +27,12 @@ import { addWallet, updateWallet } from "@/app/dashboard/wallets/actions";
 export function WalletDialog({
   open,
   wallet,
+  defaultCurrency,
   onOpenChange,
 }: {
   open: boolean;
   wallet?: Wallet;
+  defaultCurrency?: string;
   onOpenChange: (open: boolean) => void;
 }) {
   return (
@@ -40,6 +42,7 @@ export function WalletDialog({
           <WalletForm
             key={wallet?.id ?? "new"}
             wallet={wallet}
+            defaultCurrency={defaultCurrency}
             onDone={() => onOpenChange(false)}
           />
         )}
@@ -50,15 +53,19 @@ export function WalletDialog({
 
 function WalletForm({
   wallet,
+  defaultCurrency,
   onDone,
 }: {
   wallet?: Wallet;
+  defaultCurrency?: string;
   onDone: () => void;
 }) {
   const isEditing = Boolean(wallet);
   const [name, setName] = useState(wallet?.name ?? "");
   const [walletType, setWalletType] = useState(wallet?.wallet_type ?? "cash");
-  const [currency, setCurrency] = useState(wallet?.currency ?? "MYR");
+  const [currency, setCurrency] = useState(
+    wallet?.currency ?? defaultCurrency ?? "MYR"
+  );
   const [startingBalance, setStartingBalance] = useState(
     wallet ? String(wallet.starting_balance) : "0"
   );

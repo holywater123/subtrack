@@ -45,11 +45,13 @@ export function ExpensesClient({
   breakdownExpenses,
   baseCurrency,
   wallets,
+  defaultCurrency,
 }: {
   expenses: Expense[];
   breakdownExpenses: BreakdownExpense[];
   baseCurrency: string;
   wallets: Wallet[];
+  defaultCurrency: string;
 }) {
   const [dialogState, setDialogState] = useState<{
     open: boolean;
@@ -193,6 +195,7 @@ export function ExpensesClient({
         open={dialogState.open}
         expense={dialogState.expense}
         wallets={wallets}
+        defaultCurrency={defaultCurrency}
         onOpenChange={(open) => setDialogState((s) => ({ ...s, open }))}
       />
     </div>

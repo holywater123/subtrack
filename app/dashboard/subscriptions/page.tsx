@@ -14,11 +14,18 @@ export default async function SubscriptionsPage() {
   await syncSubscriptionBilling();
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const { data: subscriptions } = await supabase
-    .from("subscriptions")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const [{ data: subscriptions }, { data: settings }] = await Promise.all([
+    supabase.from("subscriptions").select("*").order("created_at", { ascending: false }),
+    supabase
+      .from("user_settings")
+      .select("default_currency")
+      .eq("user_id", user!.id)
+      .maybeSingle(),
+  ]);
 
   const subs = (subscriptions ?? []) as Subscription[];
   const rates = await getExchangeRates(BASE_CURRENCY);
@@ -31,6 +38,7 @@ export default async function SubscriptionsPage() {
       subscriptions={subs}
       totalMonthly={totalMonthly}
       baseCurrency={BASE_CURRENCY}
+      defaultCurrency={settings?.default_currency ?? "MYR"}
     />
   );
 }

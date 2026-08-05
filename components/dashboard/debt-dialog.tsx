@@ -27,10 +27,12 @@ import { addDebt, updateDebt } from "@/app/dashboard/debts/actions";
 export function DebtDialog({
   open,
   debt,
+  defaultCurrency,
   onOpenChange,
 }: {
   open: boolean;
   debt?: Debt;
+  defaultCurrency?: string;
   onOpenChange: (open: boolean) => void;
 }) {
   return (
@@ -40,6 +42,7 @@ export function DebtDialog({
           <DebtForm
             key={debt?.id ?? "new"}
             debt={debt}
+            defaultCurrency={defaultCurrency}
             onDone={() => onOpenChange(false)}
           />
         )}
@@ -48,7 +51,15 @@ export function DebtDialog({
   );
 }
 
-function DebtForm({ debt, onDone }: { debt?: Debt; onDone: () => void }) {
+function DebtForm({
+  debt,
+  defaultCurrency,
+  onDone,
+}: {
+  debt?: Debt;
+  defaultCurrency?: string;
+  onDone: () => void;
+}) {
   const isEditing = Boolean(debt);
   const [name, setName] = useState(debt?.name ?? "");
   const [debtType, setDebtType] = useState(debt?.debt_type ?? "personal_loan");
@@ -59,7 +70,9 @@ function DebtForm({ debt, onDone }: { debt?: Debt; onDone: () => void }) {
       ? [...ADDABLE_DEBT_TYPES, getDebtType(debt.debt_type)]
       : ADDABLE_DEBT_TYPES;
   const [balance, setBalance] = useState(debt ? String(debt.balance) : "");
-  const [currency, setCurrency] = useState(debt?.currency ?? "MYR");
+  const [currency, setCurrency] = useState(
+    debt?.currency ?? defaultCurrency ?? "MYR"
+  );
   const [interestRate, setInterestRate] = useState(
     debt?.interest_rate !== null && debt?.interest_rate !== undefined
       ? String(debt.interest_rate)

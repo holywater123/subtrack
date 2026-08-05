@@ -32,11 +32,13 @@ export function IncomeDialog({
   open,
   income,
   wallets,
+  defaultCurrency,
   onOpenChange,
 }: {
   open: boolean;
   income?: Income;
   wallets: Wallet[];
+  defaultCurrency?: string;
   onOpenChange: (open: boolean) => void;
 }) {
   return (
@@ -47,6 +49,7 @@ export function IncomeDialog({
             key={income?.id ?? "new"}
             income={income}
             wallets={wallets}
+            defaultCurrency={defaultCurrency}
             onDone={() => onOpenChange(false)}
           />
         )}
@@ -58,15 +61,19 @@ export function IncomeDialog({
 function IncomeForm({
   income,
   wallets,
+  defaultCurrency,
   onDone,
 }: {
   income?: Income;
   wallets: Wallet[];
+  defaultCurrency?: string;
   onDone: () => void;
 }) {
   const isEditing = Boolean(income);
   const [amount, setAmount] = useState(income ? String(income.amount) : "");
-  const [currency, setCurrency] = useState(income?.currency ?? "MYR");
+  const [currency, setCurrency] = useState(
+    income?.currency ?? defaultCurrency ?? "MYR"
+  );
   const [category, setCategory] = useState(income?.category ?? "other");
   const [receivedOn, setReceivedOn] = useState(income?.received_on ?? today());
   const [note, setNote] = useState(income?.note ?? "");
