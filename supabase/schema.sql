@@ -267,6 +267,12 @@ create table user_settings (
   birthdate date,
   goal text,
   overview_layout jsonb,
+  onboarding_completed_at timestamptz,
+  occupation text,
+  lifestyle text,
+  country text,
+  default_currency text not null default 'MYR',
+  tracking_focus text,
   updated_at timestamptz not null default now()
 );
 

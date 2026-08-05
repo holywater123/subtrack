@@ -110,3 +110,18 @@ export interface DebtPayment {
   paid_on: string;
   created_at: string;
 }
+
+export interface UserSettings {
+  user_id: string;
+  full_name: string | null;
+  birthdate: string | null;
+  goal: string | null;
+  occupation: string | null;
+  lifestyle: string | null;
+  country: string | null;
+  default_currency: string;
+  tracking_focus: string | null;
+  overview_layout: unknown;
+  onboarding_completed_at: string | null;
+  updated_at: string;
+}
