@@ -38,3 +38,28 @@ export async function updateProfile(formData: FormData): Promise<ActionResult> {
   revalidatePath("/dashboard/settings");
   return { success: true };
 }
+
+export async function submitFeedback(formData: FormData): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not signed in." };
+
+  const rating = Number(formData.get("rating"));
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return { error: "Pick a rating from 1 to 5." };
+  }
+
+  const comment = String(formData.get("comment") ?? "").trim();
+
+  const { error } = await supabase.from("feedback").insert({
+    user_id: user.id,
+    rating,
+    comment: comment || null,
+  });
+
+  if (error) return { error: error.message };
+
+  return { success: true };
+}

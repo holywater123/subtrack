@@ -2,12 +2,13 @@
 
 import { useState, useTransition, type FormEvent } from "react";
 import { toast } from "sonner";
-import { LogOut } from "lucide-react";
+import { LogOut, Star } from "lucide-react";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { updateProfile } from "@/app/dashboard/settings/actions";
+import { cn } from "@/lib/utils";
+import { updateProfile, submitFeedback } from "@/app/dashboard/settings/actions";
 import { signOut } from "@/app/dashboard/actions";
 import { InstallAppButton } from "@/components/install-app-button";
 
@@ -119,6 +120,8 @@ export function SettingsClient({
         </div>
       </MagicCard>
 
+      <FeedbackCard />
+
       <MagicCard className="rounded-2xl p-6">
         <h2 className="font-medium">Account</h2>
         <p className="text-muted-foreground mt-1 text-sm">{email}</p>
@@ -130,5 +133,84 @@ export function SettingsClient({
         </form>
       </MagicCard>
     </div>
+  );
+}
+
+// Always available, never a forced popup - matches the app's own
+// no-added-friction principle. Nothing reads these back in-app; check
+// the `feedback` table directly in Supabase.
+function FeedbackCard() {
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [isPending, startTransition] = useTransition();
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (rating === 0) {
+      toast.error("Pick a star rating first.");
+      return;
+    }
+    const formData = new FormData();
+    formData.set("rating", String(rating));
+    formData.set("comment", comment);
+
+    startTransition(async () => {
+      const result = await submitFeedback(formData);
+      if ("error" in result) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Thanks for the feedback!");
+      setRating(0);
+      setComment("");
+    });
+  }
+
+  return (
+    <MagicCard className="rounded-2xl p-6">
+      <h2 className="font-medium">Feedback</h2>
+      <p className="text-muted-foreground mt-1 text-sm">
+        How&apos;s Gauge working for you? Your feedback shapes what gets
+        built next.
+      </p>
+      <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
+        <div className="flex gap-1" onMouseLeave={() => setHoverRating(0)}>
+          {[1, 2, 3, 4, 5].map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setRating(value)}
+              onMouseEnter={() => setHoverRating(value)}
+              aria-label={`Rate ${value} star${value === 1 ? "" : "s"}`}
+              className="p-0.5"
+            >
+              <Star
+                className={cn(
+                  "size-6 transition-colors",
+                  value <= (hoverRating || rating)
+                    ? "fill-primary text-primary"
+                    : "text-muted-foreground"
+                )}
+              />
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="comment">Comment (optional)</Label>
+          <Input
+            id="comment"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="What's working, what's missing..."
+          />
+        </div>
+        <div>
+          <Button type="submit" disabled={isPending}>
+            {isPending ? "Sending..." : "Send feedback"}
+          </Button>
+        </div>
+      </form>
+    </MagicCard>
   );
 }
