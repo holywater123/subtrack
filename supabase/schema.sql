@@ -38,6 +38,9 @@ create table wallets (
   currency text not null default 'MYR',
   starting_balance numeric(10, 2) not null default 0,
   is_cash_pool boolean not null default false,
+  -- Which wallet new expense entries default to - independent of
+  -- is_cash_pool (see migration 0023_primary_spending_wallet.sql).
+  is_primary_spending boolean not null default false,
   -- Only meaningful for credit_card/pay_later wallet types.
   statement_balance numeric(10, 2),
   outstanding_balance numeric(10, 2),
@@ -59,6 +62,10 @@ create index wallets_user_id_idx on wallets (user_id);
 -- Enforce at most one cash-pool wallet per user.
 create unique index wallets_one_cash_pool_idx on wallets (user_id)
   where is_cash_pool;
+
+-- Enforce at most one primary-spending wallet per user.
+create unique index wallets_one_primary_spending_idx on wallets (user_id)
+  where is_primary_spending;
 
 create table wallet_transfers (
   id uuid primary key default gen_random_uuid(),

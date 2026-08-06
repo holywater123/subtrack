@@ -161,7 +161,23 @@ export async function updateWallet(
   return { success: true };
 }
 
-export async function toggleCashPoolWallet(id: string): Promise<ActionResult> {
+type WalletFlagColumn = "is_cash_pool" | "is_primary_spending";
+
+// Shared by both the toggle* actions (manual icon click - flips the
+// current wallet's flag) and the set* actions (AI quick entry - always
+// assigns, never unsets, since "set my Maybank card as primary spending"
+// has no sane reading as "unset it"). Only one wallet can hold a given
+// flag at a time (see the wallets_one_cash_pool_idx / _primary_spending_idx
+// partial unique indexes) - clear any existing holder first, then
+// conditionally re-set. The second update is verified via `.select().
+// maybeSingle()`: if the wallet was deleted between the initial lookup and
+// here (or RLS otherwise blocks it), the clear would otherwise silently
+// leave nobody flagged while still returning {success: true}.
+async function applyWalletFlag(
+  id: string,
+  column: WalletFlagColumn,
+  nextValue: boolean
+): Promise<ActionResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -170,34 +186,80 @@ export async function toggleCashPoolWallet(id: string): Promise<ActionResult> {
 
   const { data: wallet } = await supabase
     .from("wallets")
-    .select("is_cash_pool")
+    .select("id")
     .eq("id", id)
     .eq("user_id", user.id)
     .maybeSingle();
 
   if (!wallet) return { error: "Wallet not found." };
 
-  // Only one wallet can be the cash pool at a time - clear any existing
-  // one first so the partial unique index never sees two active rows.
   const { error: clearError } = await supabase
     .from("wallets")
-    .update({ is_cash_pool: false })
+    .update({ [column]: false })
     .eq("user_id", user.id);
 
   if (clearError) return { error: clearError.message };
 
-  if (!wallet.is_cash_pool) {
-    const { error } = await supabase
+  if (nextValue) {
+    const { data: updated, error } = await supabase
       .from("wallets")
-      .update({ is_cash_pool: true })
+      .update({ [column]: true })
       .eq("id", id)
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .select("id")
+      .maybeSingle();
 
     if (error) return { error: error.message };
+    if (!updated) {
+      return { error: "Wallet was removed - nothing was set." };
+    }
   }
 
   revalidateAll();
   return { success: true };
+}
+
+export async function setCashPoolWallet(id: string): Promise<ActionResult> {
+  return applyWalletFlag(id, "is_cash_pool", true);
+}
+
+export async function setPrimarySpendingWallet(
+  id: string
+): Promise<ActionResult> {
+  return applyWalletFlag(id, "is_primary_spending", true);
+}
+
+async function toggleWalletFlag(
+  id: string,
+  column: WalletFlagColumn
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not signed in." };
+
+  const { data: wallet } = await supabase
+    .from("wallets")
+    .select(column)
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!wallet) return { error: "Wallet not found." };
+
+  const currentValue = (wallet as Record<WalletFlagColumn, boolean>)[column];
+  return applyWalletFlag(id, column, !currentValue);
+}
+
+export async function toggleCashPoolWallet(id: string): Promise<ActionResult> {
+  return toggleWalletFlag(id, "is_cash_pool");
+}
+
+export async function togglePrimarySpendingWallet(
+  id: string
+): Promise<ActionResult> {
+  return toggleWalletFlag(id, "is_primary_spending");
 }
 
 function parseTransferForm(formData: FormData): ActionResult & {

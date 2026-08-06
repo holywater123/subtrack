@@ -19,6 +19,8 @@ import {
   type TrendExpense,
 } from "@/components/dashboard/spending-trend-card";
 import { TipsCard } from "@/components/dashboard/tips-card";
+import { SuggestedEntryCard } from "@/components/dashboard/suggested-entry-card";
+import { computeSpendingSuggestions } from "@/lib/spending-patterns";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Button } from "@/components/ui/button";
 
@@ -46,6 +48,7 @@ export default async function OverviewPage() {
     { data: settingsData },
     { data: expensesData },
     { data: incomeData },
+    { data: walletsData },
     rates,
   ] = await Promise.all([
     getFinanceSummary(),
@@ -53,15 +56,19 @@ export default async function OverviewPage() {
     supabase.from("budgets").select("category, monthly_amount"),
     supabase
       .from("user_settings")
-      .select("overview_layout")
+      .select("overview_layout, default_currency")
       .eq("user_id", user!.id)
       .maybeSingle(),
     // Unbounded - the Spending trend card and Spending estimate card both
     // let the user navigate to any past day/week/month/year, not just the
     // current one, so they need full history (same as the Expenses tab's
-    // own fetch), not just the current month.
-    supabase.from("expenses").select("amount, currency, spent_on"),
+    // own fetch), not just the current month. category/note are needed too
+    // now, for the suggested-entry pattern detection below.
+    supabase
+      .from("expenses")
+      .select("amount, currency, category, note, spent_on"),
     supabase.from("income").select("amount, currency, received_on"),
+    supabase.from("wallets").select("*").order("created_at"),
     getExchangeRates(BASE_CURRENCY),
   ]);
 
@@ -104,6 +111,17 @@ export default async function OverviewPage() {
     upcomingObligations: totalSubscriptionsMonthly,
     today,
   });
+
+  const suggestions = computeSpendingSuggestions(
+    (expensesData ?? []).map((e) => ({
+      amount: e.amount,
+      currency: e.currency,
+      category: e.category,
+      note: e.note ?? "",
+      spent_on: e.spent_on,
+    })),
+    today
+  );
 
   const sections: Record<OverviewSectionId, React.ReactNode> = {
     safelimit: <DailySafeLimitCard result={safeLimit} baseCurrency={BASE_CURRENCY} />,
@@ -165,6 +183,12 @@ export default async function OverviewPage() {
           </Button>
         </Link>
       </div>
+
+      <SuggestedEntryCard
+        suggestions={suggestions}
+        wallets={walletsData ?? []}
+        defaultCurrency={settingsData?.default_currency}
+      />
 
       {layout
         .filter((section) => section.visible)

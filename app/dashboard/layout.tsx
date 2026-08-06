@@ -9,7 +9,7 @@ import { DashboardGreeting } from "@/components/dashboard/dashboard-greeting";
 import { DashboardParticles } from "@/components/dashboard/dashboard-particles";
 import { AdvisorWidget } from "@/components/dashboard/advisor-widget";
 import { QuickEntryWidget } from "@/components/dashboard/quick-entry-widget";
-import type { ChatMessage } from "@/lib/types";
+import type { ChatMessage, Wallet } from "@/lib/types";
 
 export default async function DashboardLayout({
   children,
@@ -25,14 +25,19 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  const [{ data: settings }, { data: chatMessages }] = await Promise.all([
-    supabase
-      .from("user_settings")
-      .select("full_name, onboarding_completed_at")
-      .eq("user_id", user.id)
-      .maybeSingle(),
-    supabase.from("chat_messages").select("*").order("created_at", { ascending: true }),
-  ]);
+  const [{ data: settings }, { data: chatMessages }, { data: wallets }] =
+    await Promise.all([
+      supabase
+        .from("user_settings")
+        .select("full_name, onboarding_completed_at")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      supabase.from("chat_messages").select("*").order("created_at", { ascending: true }),
+      // Quick-entry widget needs the full wallet list - to default new
+      // expense/income entries to the right wallet, and to resolve wallet
+      // names for transfer / set-cash-pool / set-primary-spending intents.
+      supabase.from("wallets").select("*").order("created_at"),
+    ]);
 
   if (!settings?.onboarding_completed_at) {
     redirect("/onboarding");
@@ -63,7 +68,7 @@ export default async function DashboardLayout({
       {children}
 
       <AdvisorWidget messages={(chatMessages ?? []) as ChatMessage[]} />
-      <QuickEntryWidget />
+      <QuickEntryWidget wallets={(wallets ?? []) as Wallet[]} />
     </div>
   );
 }

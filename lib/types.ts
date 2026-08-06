@@ -40,6 +40,7 @@ export interface Wallet {
   currency: string;
   starting_balance: number;
   is_cash_pool: boolean;
+  is_primary_spending: boolean;
   statement_balance: number | null;
   outstanding_balance: number | null;
   credit_limit: number | null;

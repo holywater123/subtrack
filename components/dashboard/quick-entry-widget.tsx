@@ -4,10 +4,11 @@ import { useState } from "react";
 import { X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { QuickEntryClient } from "@/components/dashboard/quick-entry-client";
+import type { Wallet } from "@/lib/types";
 
 // Structural twin of AdvisorWidget - opposite corner (left, not right) so
 // the two floating buttons never overlap.
-export function QuickEntryWidget() {
+export function QuickEntryWidget({ wallets }: { wallets: Wallet[] }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -24,7 +25,7 @@ export function QuickEntryWidget() {
               <X className="size-4" />
             </Button>
           </div>
-          <QuickEntryClient onDone={() => setOpen(false)} />
+          <QuickEntryClient wallets={wallets} onDone={() => setOpen(false)} />
         </div>
       )}
 

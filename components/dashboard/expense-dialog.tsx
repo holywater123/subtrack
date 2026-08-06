@@ -34,15 +34,27 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
+// Fields a suggested-entry popup (or any other "start a new expense
+// pre-filled" caller) can seed - deliberately a subset of Expense, since
+// this only ever backs a new entry, never an edit.
+export interface ExpensePrefill {
+  amount: number;
+  currency: string;
+  category: string;
+  note: string;
+}
+
 export function ExpenseDialog({
   open,
   expense,
+  prefill,
   wallets,
   defaultCurrency,
   onOpenChange,
 }: {
   open: boolean;
   expense?: Expense;
+  prefill?: ExpensePrefill;
   wallets: Wallet[];
   defaultCurrency?: string;
   onOpenChange: (open: boolean) => void;
@@ -52,8 +64,14 @@ export function ExpenseDialog({
       <DialogContent>
         {open && (
           <ExpenseForm
-            key={expense?.id ?? "new"}
+            key={
+              expense?.id ??
+              (prefill
+                ? `prefill-${prefill.category}-${prefill.amount}-${prefill.note}`
+                : "new")
+            }
             expense={expense}
+            prefill={expense ? undefined : prefill}
             wallets={wallets}
             defaultCurrency={defaultCurrency}
             onDone={() => onOpenChange(false)}
@@ -66,31 +84,41 @@ export function ExpenseDialog({
 
 function ExpenseForm({
   expense,
+  prefill,
   wallets,
   defaultCurrency,
   onDone,
 }: {
   expense?: Expense;
+  prefill?: ExpensePrefill;
   wallets: Wallet[];
   defaultCurrency?: string;
   onDone: () => void;
 }) {
   const isEditing = Boolean(expense);
   const [amount, setAmount] = useState(
-    expense ? String(expense.amount) : ""
+    expense
+      ? String(expense.amount)
+      : prefill
+        ? String(prefill.amount)
+        : ""
   );
   const [currency, setCurrency] = useState(
-    expense?.currency ?? defaultCurrency ?? "MYR"
+    expense?.currency ?? prefill?.currency ?? defaultCurrency ?? "MYR"
   );
   const [category, setCategory] = useState(
-    getCategory(expense?.category ?? "other").value
+    getCategory(expense?.category ?? prefill?.category ?? "other").value
   );
   const [spentOn, setSpentOn] = useState(expense?.spent_on ?? today());
-  const [note, setNote] = useState(expense?.note ?? "");
+  const [note, setNote] = useState(expense?.note ?? prefill?.note ?? "");
   const [receiptPath, setReceiptPath] = useState(expense?.receipt_path ?? "");
   const cashPoolWallet = wallets.find((w) => w.is_cash_pool);
+  const primarySpendingWallet = wallets.find((w) => w.is_primary_spending);
+  // Primary spending wallet wins for expenses specifically - it exists
+  // exactly to answer "what did I pay with", separate from is_cash_pool
+  // (which is about where cash sits, used for income too).
   const [walletId, setWalletId] = useState(
-    expense?.wallet_id ?? cashPoolWallet?.id ?? "none"
+    expense?.wallet_id ?? primarySpendingWallet?.id ?? cashPoolWallet?.id ?? "none"
   );
   const [scanFile, setScanFile] = useState<File | null>(null);
   const [hint, setHint] = useState("");
@@ -102,7 +130,11 @@ function ExpenseForm({
     { value: "none", label: "Unassigned" },
     ...wallets.map((w) => ({
       value: w.id,
-      label: w.is_cash_pool ? `${w.name} (Cash pool)` : w.name,
+      label: w.is_primary_spending
+        ? `${w.name} (Primary spending)`
+        : w.is_cash_pool
+          ? `${w.name} (Cash pool)`
+          : w.name,
     })),
   ];
 
