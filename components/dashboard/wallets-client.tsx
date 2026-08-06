@@ -126,6 +126,9 @@ export function WalletsClient({
               key={row.wallet.id}
               wallet={row.wallet}
               balance={row.balance}
+              transfersRemaining={balanceTransfers
+                .filter((t) => t.wallet_id === row.wallet.id)
+                .reduce((sum, t) => sum + t.remaining_balance, 0)}
               onEdit={() => setDialogState({ open: true, wallet: row.wallet })}
             />
           ))}

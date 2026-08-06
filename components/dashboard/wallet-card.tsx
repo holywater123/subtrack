@@ -18,10 +18,16 @@ import {
 export function WalletCard({
   wallet,
   balance,
+  transfersRemaining = 0,
   onEdit,
 }: {
   wallet: Wallet;
   balance: number;
+  // Sum of this wallet's active balance-transfer plans' remaining_balance -
+  // those also consume the credit limit, same as outstanding_balance (see
+  // app/dashboard/wallets/page.tsx's creditRows "usedBase" math), so
+  // "available" here must match, not just subtract outstanding.
+  transfersRemaining?: number;
   onEdit: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -32,6 +38,7 @@ export function WalletCard({
   const symbol = currencySymbol(wallet.currency);
   const isCredit = isCreditWallet(wallet.wallet_type);
   const outstanding = wallet.outstanding_balance ?? 0;
+  const used = outstanding + transfersRemaining;
 
   function handleDelete() {
     startTransition(async () => {
@@ -104,6 +111,12 @@ export function WalletCard({
                 ? `of ${symbol}${wallet.credit_limit.toFixed(2)} limit`
                 : "outstanding"}
             </p>
+            {wallet.credit_limit !== null && (
+              <p className="text-muted-foreground truncate text-xs">
+                {symbol}
+                {Math.max(0, wallet.credit_limit - used).toFixed(2)} available
+              </p>
+            )}
           </>
         ) : (
           <p className="mt-2 truncate text-lg font-semibold">
