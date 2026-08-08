@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Pencil, Repeat, Star, Target, Trash2 } from "lucide-react";
+import { Pencil, Repeat, Scale, Star, Target, Trash2 } from "lucide-react";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Button } from "@/components/ui/button";
 import { BalanceTransferDialog } from "@/components/dashboard/balance-transfer-dialog";
+import { ReconcileWalletDialog } from "@/components/dashboard/reconcile-wallet-dialog";
 import type { Wallet } from "@/lib/types";
 import { currencySymbol } from "@/lib/currencies";
 import { getWalletType, isCreditWallet } from "@/lib/wallet-types";
@@ -35,6 +36,7 @@ export function WalletCard({
   const [isTogglingPool, startTogglingPool] = useTransition();
   const [isTogglingPrimary, startTogglingPrimary] = useTransition();
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [reconcileDialogOpen, setReconcileDialogOpen] = useState(false);
   const walletType = getWalletType(wallet.wallet_type);
   const Icon = walletType.icon;
   const symbol = currencySymbol(wallet.currency);
@@ -190,6 +192,17 @@ export function WalletCard({
             <Repeat className="size-3.5" />
           </Button>
         )}
+        {!isCredit && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7"
+            onClick={() => setReconcileDialogOpen(true)}
+            aria-label="Reconcile balance"
+          >
+            <Scale className="size-3.5" />
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon"
@@ -216,6 +229,14 @@ export function WalletCard({
           open={transferDialogOpen}
           wallet={wallet}
           onOpenChange={setTransferDialogOpen}
+        />
+      )}
+      {!isCredit && (
+        <ReconcileWalletDialog
+          open={reconcileDialogOpen}
+          wallet={wallet}
+          currentBalance={balance}
+          onOpenChange={setReconcileDialogOpen}
         />
       )}
     </MagicCard>

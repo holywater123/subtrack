@@ -61,6 +61,15 @@ export interface BalanceTransfer {
   created_at: string;
 }
 
+export interface WalletAdjustment {
+  id: string;
+  wallet_id: string;
+  amount: number; // signed delta - positive raises the wallet's balance, negative lowers it
+  currency: string;
+  note: string | null;
+  created_at: string;
+}
+
 export interface WalletTransfer {
   id: string;
   from_wallet_id: string;

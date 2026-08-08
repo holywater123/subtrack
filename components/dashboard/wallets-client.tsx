@@ -9,6 +9,7 @@ import { WalletDialog } from "@/components/dashboard/wallet-dialog";
 import { WalletTransferDialog } from "@/components/dashboard/wallet-transfer-dialog";
 import { WalletTransferRow } from "@/components/dashboard/wallet-transfer-row";
 import { BalanceTransferRow } from "@/components/dashboard/balance-transfer-row";
+import { WalletAdjustmentRow } from "@/components/dashboard/wallet-adjustment-row";
 import {
   WalletsBreakdown,
   type WalletTypeBreakdownRow,
@@ -17,12 +18,13 @@ import {
   CreditSummaryCard,
   type CreditSummaryRow,
 } from "@/components/dashboard/credit-summary-card";
-import type { BalanceTransfer, Wallet, WalletTransfer } from "@/lib/types";
+import type { BalanceTransfer, Wallet, WalletAdjustment, WalletTransfer } from "@/lib/types";
 
 export function WalletsClient({
   walletRows,
   transfers,
   balanceTransfers,
+  adjustments,
   sourceWallets,
   unassignedTotal,
   totalCashOnHand,
@@ -34,6 +36,7 @@ export function WalletsClient({
   walletRows: { wallet: Wallet; balance: number }[];
   transfers: WalletTransfer[];
   balanceTransfers: BalanceTransfer[];
+  adjustments: WalletAdjustment[];
   // Non-credit wallets only - a balance-transfer installment can't be paid
   // "from" a credit/pay-later wallet. Computed once by the page (see
   // app/dashboard/wallets/page.tsx), same pattern as debts/page.tsx's
@@ -182,6 +185,23 @@ export function WalletsClient({
               <WalletTransferRow
                 key={transfer.id}
                 transfer={transfer}
+                wallets={wallets}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {adjustments.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <h2 className="text-muted-foreground text-sm font-medium">
+            Balance adjustments
+          </h2>
+          <div className="flex flex-col gap-3">
+            {adjustments.map((adjustment) => (
+              <WalletAdjustmentRow
+                key={adjustment.id}
+                adjustment={adjustment}
                 wallets={wallets}
               />
             ))}

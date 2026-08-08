@@ -597,3 +597,86 @@ export async function deleteBalanceTransfer(id: string): Promise<ActionResult> {
   revalidateAll();
   return { success: true };
 }
+
+// Creates a signed wallet_adjustments row (see migration
+// 0024_wallet_adjustments.sql) so a wallet's computed balance can be
+// nudged to match the user's real account. `currentBalance` is what the
+// wallet card is showing right now (trusted the same way every other
+// user-entered amount in this app is - it's the user's own wallet, and
+// they can always redo an adjustment if it's wrong); `targetBalance` is
+// what they typed as the real balance. The stored delta is
+// targetBalance - currentBalance, in the wallet's own currency. Excludes
+// credit/pay-later wallets - those track outstanding_balance, not this
+// cash-balance formula, so "reconciling" them doesn't apply the same way.
+export async function reconcileWallet(
+  walletId: string,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not signed in." };
+
+  const targetBalance = Number(formData.get("targetBalance"));
+  if (!Number.isFinite(targetBalance)) {
+    return { error: "Enter a valid balance." };
+  }
+  const currentBalance = Number(formData.get("currentBalance"));
+  if (!Number.isFinite(currentBalance)) {
+    return { error: "Missing current balance." };
+  }
+  const note = String(formData.get("note") ?? "").trim() || null;
+
+  const { data: wallet } = await supabase
+    .from("wallets")
+    .select("id, currency, wallet_type")
+    .eq("id", walletId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!wallet) return { error: "Wallet not found." };
+  if (isCreditWallet(wallet.wallet_type)) {
+    return {
+      error:
+        "Credit card and Pay Later balances are tracked separately - edit the outstanding balance instead.",
+    };
+  }
+
+  const amount = Math.round((targetBalance - currentBalance) * 100) / 100;
+  if (amount === 0) {
+    return { error: "Already matches - nothing to adjust." };
+  }
+
+  const { error } = await supabase.from("wallet_adjustments").insert({
+    user_id: user.id,
+    wallet_id: walletId,
+    amount,
+    currency: wallet.currency,
+    note,
+  });
+
+  if (error) return { error: error.message };
+
+  revalidateAll();
+  return { success: true };
+}
+
+export async function deleteAdjustment(id: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not signed in." };
+
+  const { error } = await supabase
+    .from("wallet_adjustments")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) return { error: error.message };
+
+  revalidateAll();
+  return { success: true };
+}

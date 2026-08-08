@@ -3,7 +3,13 @@ import { getExchangeRates, convertAmount } from "@/lib/exchange-rates";
 import { BASE_CURRENCY } from "@/lib/finance-summary";
 import { WalletsClient } from "@/components/dashboard/wallets-client";
 import { isCreditWallet } from "@/lib/wallet-types";
-import type { BalanceTransfer, DebtPayment, Wallet, WalletTransfer } from "@/lib/types";
+import type {
+  BalanceTransfer,
+  DebtPayment,
+  Wallet,
+  WalletAdjustment,
+  WalletTransfer,
+} from "@/lib/types";
 
 export default async function WalletsPage() {
   const supabase = await createClient();
@@ -18,6 +24,7 @@ export default async function WalletsPage() {
     { data: transfersData },
     { data: balanceTransfersData },
     { data: debtPaymentsData },
+    { data: adjustmentsData },
     { data: settings },
     rates,
   ] = await Promise.all([
@@ -35,6 +42,10 @@ export default async function WalletsPage() {
       .order("created_at", { ascending: false }),
     supabase.from("debt_payments").select("source_wallet_id, amount, currency"),
     supabase
+      .from("wallet_adjustments")
+      .select("*")
+      .order("created_at", { ascending: false }),
+    supabase
       .from("user_settings")
       .select("default_currency")
       .eq("user_id", user!.id)
@@ -51,6 +62,7 @@ export default async function WalletsPage() {
     DebtPayment,
     "source_wallet_id" | "amount" | "currency"
   >[];
+  const adjustments = (adjustmentsData ?? []) as WalletAdjustment[];
 
   const walletRows = wallets.map((wallet) => {
     const incomeTotal = income
@@ -72,13 +84,20 @@ export default async function WalletsPage() {
     const debtPaymentsOut = debtPayments
       .filter((p) => p.source_wallet_id === wallet.id)
       .reduce((sum, p) => sum + convertAmount(p.amount, p.currency, wallet.currency, rates), 0);
+    // Manual reconciliation deltas (see reconcileWallet in
+    // app/dashboard/wallets/actions.ts) - signed, so this can push the
+    // balance either direction.
+    const adjustmentsTotal = adjustments
+      .filter((a) => a.wallet_id === wallet.id)
+      .reduce((sum, a) => sum + convertAmount(a.amount, a.currency, wallet.currency, rates), 0);
     const balance =
       wallet.starting_balance +
       incomeTotal -
       expenseTotal +
       transfersIn -
       transfersOut -
-      debtPaymentsOut;
+      debtPaymentsOut +
+      adjustmentsTotal;
 
     return {
       wallet,
@@ -171,6 +190,7 @@ export default async function WalletsPage() {
       walletRows={walletRows.map(({ wallet, balance }) => ({ wallet, balance }))}
       transfers={transfers}
       balanceTransfers={balanceTransfers}
+      adjustments={adjustments}
       sourceWallets={sourceWallets}
       unassignedTotal={unassignedTotal}
       totalCashOnHand={totalCashOnHand}
