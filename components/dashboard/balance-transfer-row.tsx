@@ -13,9 +13,11 @@ import { deleteBalanceTransfer } from "@/app/dashboard/wallets/actions";
 export function BalanceTransferRow({
   transfer,
   wallets,
+  sourceWallets,
 }: {
   transfer: BalanceTransfer;
   wallets: Wallet[];
+  sourceWallets: Wallet[];
 }) {
   const [isPending, startTransition] = useTransition();
   const [payDialogOpen, setPayDialogOpen] = useState(false);
@@ -68,6 +70,7 @@ export function BalanceTransferRow({
       <PayInstallmentDialog
         open={payDialogOpen}
         transfer={transfer}
+        sourceWallets={sourceWallets}
         onOpenChange={setPayDialogOpen}
       />
     </MagicCard>

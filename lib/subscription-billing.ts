@@ -57,11 +57,27 @@ export async function syncSubscriptionBilling(): Promise<void> {
   const today = new Date().toISOString().slice(0, 10);
   const currentMonth = monthKey(today);
 
-  const { data: subscriptionsData } = await supabase
-    .from("subscriptions")
-    .select("*")
-    .eq("user_id", user.id);
+  const [{ data: subscriptionsData }, { data: walletsData }] = await Promise.all([
+    supabase.from("subscriptions").select("*").eq("user_id", user.id),
+    supabase
+      .from("wallets")
+      .select("id, is_cash_pool, is_primary_spending")
+      .eq("user_id", user.id),
+  ]);
   const subscriptions = (subscriptionsData ?? []) as Subscription[];
+  // Same default-wallet priority as a manual expense entry (see
+  // expense-dialog.tsx): primary-spending wins, cash pool is the fallback.
+  // Without this, an auto-billed expense row was inserted with no
+  // wallet_id at all - real money left the user's account, but the app's
+  // computed wallet balance (app/dashboard/wallets/page.tsx's
+  // `expenseTotal`, filtered by wallet_id) never subtracted it, so the
+  // computed balance silently drifted above the real one by the sum of
+  // every auto-billed subscription charge.
+  const wallets = walletsData ?? [];
+  const defaultWalletId =
+    wallets.find((w) => w.is_primary_spending)?.id ??
+    wallets.find((w) => w.is_cash_pool)?.id ??
+    null;
 
   const toResume = subscriptions.filter(
     (s) => s.is_paused && !s.paused_permanent && s.paused_until && s.paused_until <= today
@@ -99,6 +115,7 @@ export async function syncSubscriptionBilling(): Promise<void> {
             category: s.category,
             spent_on: nextDate,
             subscription_id: s.id,
+            wallet_id: defaultWalletId,
           });
         }
       }

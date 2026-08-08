@@ -172,15 +172,19 @@ export async function payDebt(
 
   const { data: sourceWallet, error: sourceFetchError } = await supabase
     .from("wallets")
-    .select("id")
+    .select("id, wallet_type")
     .eq("id", sourceWalletId)
     .eq("user_id", user.id)
     .single();
 
   if (sourceFetchError || !sourceWallet) return { error: "Source account not found." };
+  if (isCreditWallet(sourceWallet.wallet_type)) {
+    return { error: "Choose a bank, e-wallet, or cash account to pay from." };
+  }
 
   let targetName: string;
   let targetCurrency: string;
+  let currentBalance: number;
 
   if (targetKind === "debt") {
     const { data: debt, error: fetchError } = await supabase
@@ -194,15 +198,7 @@ export async function payDebt(
 
     targetName = debt.name;
     targetCurrency = debt.currency;
-    const newBalance = Math.max(0, Number(debt.balance) - amount);
-
-    const { error: updateError } = await supabase
-      .from("debts")
-      .update({ balance: newBalance })
-      .eq("id", targetId)
-      .eq("user_id", user.id);
-
-    if (updateError) return { error: updateError.message };
+    currentBalance = Number(debt.balance);
   } else {
     const { data: wallet, error: fetchError } = await supabase
       .from("wallets")
@@ -218,17 +214,18 @@ export async function payDebt(
 
     targetName = wallet.name;
     targetCurrency = wallet.currency;
-    const newBalance = Math.max(0, Number(wallet.outstanding_balance ?? 0) - amount);
-
-    const { error: updateError } = await supabase
-      .from("wallets")
-      .update({ outstanding_balance: newBalance })
-      .eq("id", targetId)
-      .eq("user_id", user.id);
-
-    if (updateError) return { error: updateError.message };
+    currentBalance = Number(wallet.outstanding_balance ?? 0);
   }
 
+  // The debt_payments/expenses inserts (the writes that make the source
+  // wallet's own computed balance correct) happen BEFORE the debt/wallet
+  // balance update, not after. If either insert fails, the target's
+  // balance hasn't been touched yet, so nothing is left inconsistent - the
+  // payment simply didn't apply and can be retried. The original order
+  // risked the opposite: a debt/wallet balance already reduced while a
+  // failed insert left no wallet ever debited, silently reproducing the
+  // "payment invisible to any wallet" bug this whole account-picker exists
+  // to prevent.
   const principal = amount - interestAmount;
   if (principal > 0) {
     const { error: paymentError } = await supabase.from("debt_payments").insert({
@@ -255,6 +252,22 @@ export async function payDebt(
     });
     if (expenseError) return { error: expenseError.message };
   }
+
+  const newBalance = Math.max(0, currentBalance - amount);
+  const { error: updateError } =
+    targetKind === "debt"
+      ? await supabase
+          .from("debts")
+          .update({ balance: newBalance })
+          .eq("id", targetId)
+          .eq("user_id", user.id)
+      : await supabase
+          .from("wallets")
+          .update({ outstanding_balance: newBalance })
+          .eq("id", targetId)
+          .eq("user_id", user.id);
+
+  if (updateError) return { error: updateError.message };
 
   revalidateAll();
   revalidatePath("/dashboard/expenses");

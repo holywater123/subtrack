@@ -12,17 +12,26 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import type { BalanceTransfer } from "@/lib/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { BalanceTransfer, Wallet } from "@/lib/types";
 import { currencySymbol } from "@/lib/currencies";
 import { payInstallment } from "@/app/dashboard/wallets/actions";
 
 export function PayInstallmentDialog({
   open,
   transfer,
+  sourceWallets,
   onOpenChange,
 }: {
   open: boolean;
   transfer: BalanceTransfer;
+  sourceWallets: Wallet[];
   onOpenChange: (open: boolean) => void;
 }) {
   return (
@@ -32,6 +41,7 @@ export function PayInstallmentDialog({
           <PayInstallmentForm
             key={transfer.id}
             transfer={transfer}
+            sourceWallets={sourceWallets}
             onDone={() => onOpenChange(false)}
           />
         )}
@@ -42,9 +52,11 @@ export function PayInstallmentDialog({
 
 function PayInstallmentForm({
   transfer,
+  sourceWallets,
   onDone,
 }: {
   transfer: BalanceTransfer;
+  sourceWallets: Wallet[];
   onDone: () => void;
 }) {
   const symbol = currencySymbol(transfer.currency);
@@ -57,12 +69,21 @@ function PayInstallmentForm({
   const [amount, setAmount] = useState(
     defaultAmount > 0 ? defaultAmount.toFixed(2) : ""
   );
+  const defaultWalletId =
+    sourceWallets.find((w) => w.is_cash_pool)?.id ?? sourceWallets[0]?.id ?? "";
+  const [sourceWalletId, setSourceWalletId] = useState(defaultWalletId);
   const [isPending, startTransition] = useTransition();
+
+  const walletItems = sourceWallets.map((w) => ({
+    value: w.id,
+    label: `${w.name} (${currencySymbol(w.currency)})`,
+  }));
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const formData = new FormData();
     formData.set("amount", amount);
+    formData.set("sourceWalletId", sourceWalletId);
 
     startTransition(async () => {
       const result = await payInstallment(transfer.id, formData);
@@ -88,6 +109,32 @@ function PayInstallmentForm({
         <DialogTitle>Pay {transfer.name ?? "installment"}</DialogTitle>
       </DialogHeader>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {walletItems.length === 0 ? (
+          <p className="text-muted-foreground text-sm">
+            Add a bank, e-wallet, or cash wallet first - payments need an
+            account to come out of.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <Label>Pay from</Label>
+            <Select
+              items={walletItems}
+              value={sourceWalletId}
+              onValueChange={(v) => v && setSourceWalletId(v)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {walletItems.map((w) => (
+                  <SelectItem key={w.value} value={w.value}>
+                    {w.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         <div className="flex flex-col gap-2">
           <Label htmlFor="amount">Payment amount</Label>
           <Input
@@ -108,7 +155,7 @@ function PayInstallmentForm({
           </p>
         </div>
         <DialogFooter>
-          <Button type="submit" disabled={isPending}>
+          <Button type="submit" disabled={isPending || !sourceWalletId}>
             {isPending ? "Recording..." : "Record payment"}
           </Button>
         </DialogFooter>

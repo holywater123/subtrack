@@ -89,6 +89,11 @@ export default async function WalletsPage() {
 
   const cashWalletRows = walletRows.filter((row) => !isCreditWallet(row.wallet.wallet_type));
   const creditWalletRows = walletRows.filter((row) => isCreditWallet(row.wallet.wallet_type));
+  // Same restriction as app/dashboard/debts/page.tsx's sourceWallets - a
+  // payment (here, a balance-transfer installment) can't come "from" a
+  // credit/pay-later wallet. Computed once here, same pattern as debts,
+  // rather than re-filtered per-row.
+  const sourceWallets = wallets.filter((w) => !isCreditWallet(w.wallet_type));
 
   const unassignedIncome = income
     .filter((i) => !i.wallet_id)
@@ -166,6 +171,7 @@ export default async function WalletsPage() {
       walletRows={walletRows.map(({ wallet, balance }) => ({ wallet, balance }))}
       transfers={transfers}
       balanceTransfers={balanceTransfers}
+      sourceWallets={sourceWallets}
       unassignedTotal={unassignedTotal}
       totalCashOnHand={totalCashOnHand}
       typeBreakdown={typeBreakdown}

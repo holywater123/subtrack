@@ -460,6 +460,13 @@ export async function createBalanceTransfer(
 // whatever was originally charged to the card, so logging it again would
 // double-count. Interest is the plan's fixed total_interest/term_months
 // share, capped at whatever the payment actually covers.
+//
+// Mirrors payDebt's account-picker pattern (a source wallet is required,
+// and the principal portion becomes a debt_payments row so it reduces that
+// wallet's computed balance) - this used to have neither: no source wallet
+// at all, and the interest expense wasn't linked to any wallet_id either,
+// so paying an installment had zero effect on any wallet's computed
+// balance even though real money left a real account.
 export async function payInstallment(
   transferId: string,
   formData: FormData
@@ -475,16 +482,37 @@ export async function payInstallment(
     return { error: "Enter a valid payment amount." };
   }
 
+  const sourceWalletId = String(formData.get("sourceWalletId") ?? "");
+  if (!sourceWalletId) {
+    return { error: "Choose an account to pay from." };
+  }
+
   const { data: transfer, error: fetchError } = await supabase
     .from("balance_transfers")
     .select(
-      "name, currency, remaining_balance, total_interest, term_months, installments_paid"
+      "wallet_id, name, currency, remaining_balance, total_interest, term_months, installments_paid"
     )
     .eq("id", transferId)
     .eq("user_id", user.id)
     .single();
 
   if (fetchError || !transfer) return { error: "Balance transfer not found." };
+
+  if (sourceWalletId === transfer.wallet_id) {
+    return { error: "Choose a different account to pay from." };
+  }
+
+  const { data: sourceWallet, error: sourceFetchError } = await supabase
+    .from("wallets")
+    .select("id, wallet_type")
+    .eq("id", sourceWalletId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (sourceFetchError || !sourceWallet) return { error: "Source account not found." };
+  if (isCreditWallet(sourceWallet.wallet_type)) {
+    return { error: "Choose a bank, e-wallet, or cash account to pay from." };
+  }
 
   const remainingBalance = Number(transfer.remaining_balance);
   if (amount > remainingBalance) {
@@ -494,7 +522,32 @@ export async function payInstallment(
   const interestPerInstallment =
     transfer.term_months > 0 ? Number(transfer.total_interest) / transfer.term_months : 0;
   const interestPortion = Math.min(interestPerInstallment, amount);
+  const principal = amount - interestPortion;
   const newRemaining = Math.max(0, remainingBalance - amount);
+
+  // debt_payments is inserted BEFORE the balance_transfers update - if this
+  // insert fails, nothing else has changed yet, so the transfer's own
+  // remaining_balance/installments_paid stay untouched and the payment can
+  // simply be retried. Doing it in the other order (as originally written)
+  // meant a failed debt_payments insert left remaining_balance already
+  // decremented with no wallet ever debited - silently reproducing the
+  // exact "payment invisible to any wallet" bug this function exists to
+  // fix, and compounding on retry.
+  if (principal > 0) {
+    // target_wallet_id, not target_debt_id - a balance transfer plan isn't
+    // its own `debts` row, it's still debt against the credit-card wallet
+    // it was converted from (balance_transfers.wallet_id), same as paying
+    // that card directly via payDebt's "wallet" target kind.
+    const { error: paymentError } = await supabase.from("debt_payments").insert({
+      user_id: user.id,
+      source_wallet_id: sourceWalletId,
+      target_debt_id: null,
+      target_wallet_id: transfer.wallet_id,
+      amount: principal,
+      currency: transfer.currency,
+    });
+    if (paymentError) return { error: paymentError.message };
+  }
 
   const { error: updateError } = await supabase
     .from("balance_transfers")
@@ -515,6 +568,7 @@ export async function payInstallment(
       category: "finance",
       spent_on: new Date().toISOString().slice(0, 10),
       note: `Interest on ${transfer.name ?? "balance transfer"}`,
+      wallet_id: sourceWalletId,
       balance_transfer_id: transferId,
     });
     if (expenseError) return { error: expenseError.message };

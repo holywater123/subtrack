@@ -23,6 +23,7 @@ export function WalletsClient({
   walletRows,
   transfers,
   balanceTransfers,
+  sourceWallets,
   unassignedTotal,
   totalCashOnHand,
   typeBreakdown,
@@ -33,6 +34,11 @@ export function WalletsClient({
   walletRows: { wallet: Wallet; balance: number }[];
   transfers: WalletTransfer[];
   balanceTransfers: BalanceTransfer[];
+  // Non-credit wallets only - a balance-transfer installment can't be paid
+  // "from" a credit/pay-later wallet. Computed once by the page (see
+  // app/dashboard/wallets/page.tsx), same pattern as debts/page.tsx's
+  // sourceWallets, rather than re-filtered per BalanceTransferRow.
+  sourceWallets: Wallet[];
   unassignedTotal: number;
   totalCashOnHand: number;
   typeBreakdown: WalletTypeBreakdownRow[];
@@ -159,6 +165,7 @@ export function WalletsClient({
                 key={transfer.id}
                 transfer={transfer}
                 wallets={wallets}
+                sourceWallets={sourceWallets}
               />
             ))}
           </div>
